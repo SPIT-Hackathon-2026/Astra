@@ -1,84 +1,108 @@
 'use client';
 
-import { Mic, Sparkles, MapPin, CheckCircle } from 'lucide-react';
+import { Mic, Sparkles, MapPin, Navigation } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Luckiest_Guy } from 'next/font/google';
+
+const luckiestGuy = Luckiest_Guy({
+  weight: '400',
+  subsets: ['latin'],
+});
 
 export const HowItWorks = () => {
   const steps = [
     {
       icon: Mic,
-      title: 'Speak Your Plans',
-      description:
-        'Tell us where you want to go, when, and what you like to do. Use your voice or type.',
-      color: 'from-blue-500 to-cyan-500',
+      number: '01',
+      title: 'Describe Your Trip',
+      description: 'Tell us your destination, travel dates, and preferences — by voice or text.',
+      color: 'from-rs-terracotta to-rs-sunset-orange',
     },
     {
       icon: Sparkles,
-      title: 'AI Creates Itinerary',
-      description:
-        'Our intelligent system generates a personalized travel plan tailored to your preferences.',
-      color: 'from-purple-500 to-pink-500',
+      number: '02',
+      title: 'AI Builds Your Route',
+      description: 'Our engine creates a personalized itinerary with optimal stops and scenic detours.',
+      color: 'from-rs-neon-amber to-rs-sunset-orange',
     },
     {
       icon: MapPin,
-      title: 'Explore & Customize',
-      description:
-        'Review your itinerary, make adjustments, and discover hidden gems along the way.',
-      color: 'from-orange-500 to-red-500',
+      number: '03',
+      title: 'Customize & Refine',
+      description: 'Swap stops, add favorites, adjust timing. Make the trip completely yours.',
+      color: 'from-rs-neon-teal to-rs-sky-blue',
     },
     {
-      icon: CheckCircle,
-      title: 'Travel & Enjoy',
-      description:
-        'Your trip adapts in real-time to changes. Focus on making memories, we handle the rest.',
-      color: 'from-green-500 to-emerald-500',
+      icon: Navigation,
+      number: '04',
+      title: 'Navigate & Enjoy',
+      description: 'Real-time guidance that adapts to conditions. Just focus on the journey.',
+      color: 'from-rs-sunset-purple to-rs-sunset-pink',
     },
   ];
 
   return (
-    <section className="py-20 bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            How It Works
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Four simple steps to your perfect travel experience
-          </p>
-        </div>
+    <section className="py-20 sm:py-28 bg-rs-deep-brown relative overflow-hidden">
+      {/* Subtle texture */}
+      <div className="absolute inset-0 opacity-[0.02]" style={{
+        backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+        backgroundSize: '24px 24px',
+      }} />
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+          className="text-center mb-14 sm:mb-20"
+        >
+          <p className="text-rs-neon-teal text-sm font-semibold tracking-widest uppercase mb-3">
+            How It Works
+          </p>
+          <h2 className={`${luckiestGuy.className} text-3xl sm:text-4xl md:text-5xl text-white mb-4`}>
+            Four Simple Steps
+          </h2>
+          <p className="text-rs-sand/60 text-base sm:text-lg max-w-2xl mx-auto">
+            From idea to open road in minutes — not hours.
+          </p>
+        </motion.div>
+
+        {/* Steps Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {steps.map((step, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ duration: 0.4, delay: index * 0.12 }}
               viewport={{ once: true }}
-              className="relative"
+              className="relative group"
             >
-              {/* Connector Line */}
+              {/* Connector line on desktop */}
               {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-16 left-[60%] w-full h-0.5 bg-gradient-to-r from-gray-300 to-gray-200 dark:from-gray-700 dark:to-gray-800"></div>
+                <div className="hidden lg:block absolute top-10 left-[calc(50%+40px)] w-[calc(100%-80px)] h-px bg-gradient-to-r from-white/20 to-white/5" />
               )}
 
-              <div className="relative z-10 text-center">
-                <div
-                  className={`mx-auto w-24 h-24 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center mb-6 shadow-lg`}
-                >
-                  <step.icon className="h-12 w-12 text-white" />
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-                  <div className="text-sm font-semibold text-primary-600 dark:text-primary-400 mb-2">
-                    Step {index + 1}
+              <div className="text-center">
+                {/* Step number + icon */}
+                <div className="relative inline-block mb-6">
+                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300`}>
+                    <step.icon className="h-9 w-9 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    {step.title}
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    {step.description}
-                  </p>
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-rs-neon-amber text-rs-deep-brown text-xs font-black flex items-center justify-center shadow-md">
+                    {step.number}
+                  </div>
                 </div>
+
+                {/* Text */}
+                <h3 className="text-lg font-bold text-white mb-2">
+                  {step.title}
+                </h3>
+                <p className="text-rs-sand/50 text-sm leading-relaxed max-w-[220px] mx-auto">
+                  {step.description}
+                </p>
               </div>
             </motion.div>
           ))}

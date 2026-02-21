@@ -1,26 +1,124 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Radiator Springs Color Palette */
+  --rs-terracotta: #C75B39;
+  --rs-terracotta-light: #E87B55;
+  --rs-terracotta-dark: #A04328;
+  --rs-sand: #F5E6D3;
+  --rs-sand-light: #FDF6ED;
+  --rs-sand-dark: #DFC9AD;
+  --rs-sunset-orange: #E8842A;
+  --rs-sunset-pink: #D4637A;
+  --rs-sunset-purple: #7B4F91;
+  --rs-desert-brown: #8B6D47;
+  --rs-dusty-red: #B5453A;
+  --rs-canyon-red: #9E3B2F;
+  --rs-neon-teal: #40C9B0;
+  --rs-neon-teal-glow: #2BE3C8;
+  --rs-neon-amber: #FFB347;
+  --rs-sky-blue: #5BA4CF;
+  --rs-sky-blue-light: #7EC8E3;
+  --rs-deep-brown: #3D2B1F;
+  --rs-night-sky: #1A1028;
+  --rs-road-gray: #2C2C2C;
+  --rs-asphalt: #1E1E22;
+
+  --background: var(--rs-sand-light);
+  --foreground: var(--rs-deep-brown);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-fredoka);
   --font-mono: var(--font-geist-mono);
+
+  --color-rs-terracotta: #C75B39;
+  --color-rs-terracotta-light: #E87B55;
+  --color-rs-terracotta-dark: #A04328;
+  --color-rs-sand: #F5E6D3;
+  --color-rs-sand-light: #FDF6ED;
+  --color-rs-sand-dark: #DFC9AD;
+  --color-rs-sunset-orange: #E8842A;
+  --color-rs-sunset-pink: #D4637A;
+  --color-rs-sunset-purple: #7B4F91;
+  --color-rs-desert-brown: #8B6D47;
+  --color-rs-dusty-red: #B5453A;
+  --color-rs-canyon-red: #9E3B2F;
+  --color-rs-neon-teal: #40C9B0;
+  --color-rs-neon-teal-glow: #2BE3C8;
+  --color-rs-neon-amber: #FFB347;
+  --color-rs-sky-blue: #5BA4CF;
+  --color-rs-sky-blue-light: #7EC8E3;
+  --color-rs-deep-brown: #3D2B1F;
+  --color-rs-night-sky: #1A1028;
+  --color-rs-road-gray: #2C2C2C;
+  --color-rs-asphalt: #1E1E22;
+
+  --color-primary-50: #FEF3EE;
+  --color-primary-100: #FDE4D5;
+  --color-primary-200: #FAC5A9;
+  --color-primary-300: #F5A077;
+  --color-primary-400: #E87B55;
+  --color-primary-500: #C75B39;
+  --color-primary-600: #A04328;
+  --color-primary-700: #84351F;
+  --color-primary-800: #6B2B19;
+  --color-primary-900: #4A1E12;
+  --color-primary-950: #2D110A;
+
+  --color-secondary-50: #F0FDF9;
+  --color-secondary-100: #D1FAF0;
+  --color-secondary-200: #A7F3E2;
+  --color-secondary-300: #6DE7CB;
+  --color-secondary-400: #40C9B0;
+  --color-secondary-500: #2BA998;
+  --color-secondary-600: #1F887C;
+  --color-secondary-700: #1C6D65;
+  --color-secondary-800: #1B5752;
+  --color-secondary-900: #1A4844;
+  --color-secondary-950: #0A2D2B;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--rs-sand-dark);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--rs-terracotta);
+}
+
+/* Selection */
+::selection {
+  background: var(--rs-terracotta);
+  color: white;
+}
+
+/* Utilities */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }

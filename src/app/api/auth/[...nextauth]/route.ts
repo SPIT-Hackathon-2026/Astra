@@ -2,7 +2,7 @@ import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from '../../../../lib/mongodb';
 import User from '../../../../models/User';
-   import bcrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -13,32 +13,52 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
 
-async authorize(credentials) {
-  if (!credentials?.email || !credentials?.password) {
-    return null;
-  }
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          console.error('❌ Auth: Missing email or password');
+          throw new Error('Please enter email and password');
+        }
 
-  await dbConnect();
+        try {
+          await dbConnect();
+          console.log('✅ Auth: DB connected');
 
-  const user = await User.findOne({
-    email: credentials.email.toLowerCase(),
-  }).select('+password').lean(); // 🔥 CRITICAL
+          const user = await User.findOne({
+            email: credentials.email.toLowerCase(),
+          }).select('+password').lean();
 
-  if (!user) return null;
+          if (!user) {
+            console.error('❌ Auth: No user found for', credentials.email);
+            throw new Error('Invalid email or password');
+          }
+          console.log('✅ Auth: User found:', user.email);
 
-  const isValid = await bcrypt.compare(
-    credentials.password,
-    user.password
-  );
+          if (!user.password) {
+            console.error('❌ Auth: User has no password field (select might have failed)');
+            throw new Error('Invalid email or password');
+          }
 
-  if (!isValid) return null;
+          const isValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
 
-  return {
-    id: user._id.toString(),
-    email: user.email,
-    name: user.name,
-  };
-}
+          if (!isValid) {
+            console.error('❌ Auth: Password mismatch for', user.email);
+            throw new Error('Invalid email or password');
+          }
+
+          console.log('✅ Auth: Login successful for', user.email);
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+          };
+        } catch (error: any) {
+          console.error('❌ Auth error:', error.message);
+          throw new Error(error.message || 'Authentication failed');
+        }
+      }
     }),
   ],
   pages: {

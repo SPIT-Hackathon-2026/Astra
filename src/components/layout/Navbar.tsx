@@ -1,10 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Menu, X, Plane } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { Luckiest_Guy } from 'next/font/google';
+
+const luckiestGuy = Luckiest_Guy({
+  weight: '400',
+  subsets: ['latin'],
+});
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,49 +27,49 @@ export const Navbar = () => {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <nav className="fixed top-0 w-full bg-white/80 dark:bg-gray-950/80 backdrop-blur-md z-50 border-b border-gray-200 dark:border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-xl z-50 border-b border-rs-sand-dark/30 shadow-sm">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+        <div className="flex justify-between items-center h-16 sm:h-[68px]">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="p-2 bg-primary-600 rounded-lg group-hover:bg-primary-700 transition-colors">
-              <Plane className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <Image
+              src="/images/logo-icon.png"
+              alt="Radiator Routes"
+              width={36}
+              height={36}
+              className="rounded-lg"
+            />
+            <span className={`${luckiestGuy.className} text-xl text-rs-terracotta hidden sm:block`}>
               Radiator Routes
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-sm font-medium transition-colors relative ${
-                  isActive(item.href)
-                    ? 'text-primary-600 dark:text-primary-400'
-                    : 'text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-primary-400'
-                }`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
+                    ? 'text-rs-terracotta bg-rs-terracotta/8'
+                    : 'text-rs-deep-brown/70 hover:text-rs-terracotta hover:bg-rs-sand/50'
+                  }`}
               >
                 {item.label}
-                {isActive(item.href) && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400"></span>
-                )}
               </Link>
             ))}
           </div>
 
           {/* Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center gap-3">
             <Link href="/login">
-              <Button variant="ghost" size="sm">
-                Login
-              </Button>
+              <button className="px-4 py-2 text-sm font-medium text-rs-deep-brown/70 hover:text-rs-terracotta transition-colors">
+                Log in
+              </button>
             </Link>
             <Link href="/signup">
-              <Button variant="primary" size="sm">
-                Sign Up
+              <Button variant="primary" size="sm" className="shadow-sm">
+                Start Free
               </Button>
             </Link>
           </div>
@@ -70,39 +77,37 @@ export const Navbar = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="md:hidden p-2 rounded-lg text-rs-deep-brown hover:bg-rs-sand/50 transition-colors"
+            aria-label="Toggle menu"
           >
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden py-4 space-y-4 animate-in slide-in-from-top">
+          <div className="md:hidden py-4 space-y-1 border-t border-rs-sand-dark/20">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive(item.href)
-                    ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400'
-                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                }`}
+                className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
+                    ? 'text-rs-terracotta bg-rs-terracotta/8'
+                    : 'text-rs-deep-brown/70 hover:bg-rs-sand/50'
+                  }`}
               >
                 {item.label}
               </Link>
             ))}
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
+            <div className="pt-3 mt-2 border-t border-rs-sand-dark/15 space-y-2">
               <Link href="/login" onClick={() => setIsOpen(false)}>
-                <Button variant="ghost" size="sm" className="w-full">
-                  Login
-                </Button>
+                <button className="w-full text-left px-4 py-3 text-sm font-medium text-rs-deep-brown/70 hover:bg-rs-sand/50 rounded-lg">
+                  Log in
+                </button>
               </Link>
               <Link href="/signup" onClick={() => setIsOpen(false)}>
-                <Button variant="primary" size="sm" className="w-full">
-                  Sign Up
-                </Button>
+                <Button variant="primary" className="w-full">Start Free</Button>
               </Link>
             </div>
           </div>
