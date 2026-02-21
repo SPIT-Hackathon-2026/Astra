@@ -19,11 +19,13 @@ import {
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { TripPlanningForm } from '../../components/trip/TripPlanningForm';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [greeting, setGreeting] = useState('');
+  const [showTripForm, setShowTripForm] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -87,7 +89,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-purple-950 dark:to-pink-950">
       {/* Top Navigation */}
-      <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
+      <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -126,8 +128,8 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Quick Action */}
-        <Card className="p-8 mb-12 bg-gradient-to-r from-blue-600 to-purple-600 border-none text-white">
+        {/* Quick Action - Create Trip */}
+        <Card className="p-8 mb-12 bg-gradient-to-r from-blue-600 to-purple-600 border-none text-white shadow-2xl">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="mb-6 md:mb-0">
               <h2 className="text-3xl font-bold mb-2">Plan New Trip</h2>
@@ -135,18 +137,19 @@ export default function DashboardPage() {
             </div>
             <div className="flex space-x-4">
               <Button
+                onClick={() => setShowTripForm(true)}
                 variant="secondary"
                 className="bg-white text-blue-600 hover:bg-gray-100 shadow-xl"
               >
-                <Mic className="mr-2 h-5 w-5" />
-                Voice Plan
+                <Plus className="mr-2 h-5 w-5" />
+                Create Trip
               </Button>
               <Button
                 variant="outline"
                 className="border-white text-white hover:bg-white/10"
               >
-                <Plus className="mr-2 h-5 w-5" />
-                Create Trip
+                <Mic className="mr-2 h-5 w-5" />
+                Voice Plan
               </Button>
             </div>
           </div>
@@ -214,7 +217,7 @@ export default function DashboardPage() {
         </div>
 
         {/* AI Recommendations */}
-        <Card className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+        <Card className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-800">
           <div className="flex items-start space-x-4">
             <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
               <Star className="h-6 w-6 text-white" />
@@ -230,7 +233,7 @@ export default function DashboardPage() {
                 {['Bali, Indonesia', 'Barcelona, Spain', 'Dubai, UAE', 'Iceland'].map((place, i) => (
                   <span
                     key={i}
-                    className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:scale-105 transform transition-transform"
                   >
                     {place}
                   </span>
@@ -240,6 +243,11 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* Trip Planning Modal */}
+      {showTripForm && (
+        <TripPlanningForm onClose={() => setShowTripForm(false)} />
+      )}
     </div>
   );
 }
