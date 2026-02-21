@@ -1,259 +1,145 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Mic, Sparkles, Plane, MapPin, Calendar, Star } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowRight, Mic, Play } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { motion } from 'framer-motion';
+import { Luckiest_Guy } from 'next/font/google';
+
+const luckiestGuy = Luckiest_Guy({
+  weight: '400',
+  subsets: ['latin'],
+});
 
 export const Hero = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Animated Mesh Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-blue-950 dark:via-purple-950 dark:to-pink-950">
-        {/* Animated Grid */}
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)',
-          backgroundSize: '50px 50px',
-        }} />
+    <section className="relative min-h-[100dvh] flex items-end sm:items-center overflow-hidden">
+      {/* Professional photo background */}
+      <div className="absolute inset-0">
+        <Image
+          src="/images/hero-bg.png"
+          alt="Open road stretching into Monument Valley at sunset"
+          fill
+          className="object-cover object-center"
+          priority
+          quality={90}
+        />
+        {/* Cinematic overlays for depth */}
+        <div className="absolute inset-0 bg-gradient-to-r from-rs-deep-brown/80 via-rs-deep-brown/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-rs-deep-brown/90 via-transparent to-rs-deep-brown/20" />
       </div>
 
-      {/* Floating Orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            y: [0, -30, 0],
-            x: [0, 20, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full blur-3xl opacity-30"
-        />
-        <motion.div
-          animate={{
-            y: [0, 30, 0],
-            x: [0, -20, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute top-40 right-20 w-96 h-96 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full blur-3xl opacity-30"
-        />
-        <motion.div
-          animate={{
-            y: [0, -40, 0],
-            x: [0, 30, 0],
-            scale: [1, 1.15, 1],
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-20 left-1/3 w-80 h-80 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full blur-3xl opacity-30"
-        />
-      </div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 text-center z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-        >
-          {/* Floating Icons */}
-          <div className="flex justify-center mb-10 space-x-6">
-            {[
-              { Icon: Plane, color: 'from-blue-500 to-cyan-500', delay: 0 },
-              { Icon: MapPin, color: 'from-purple-500 to-pink-500', delay: 0.2 },
-              { Icon: Calendar, color: 'from-orange-500 to-red-500', delay: 0.4 },
-            ].map(({ Icon, color, delay }, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay }}
-                whileHover={{ scale: 1.2, rotate: 360 }}
-              >
-                <motion.div
-                  animate={{ y: [0, -15, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, delay: i * 0.3 }}
-                  className={`p-4 bg-gradient-to-br ${color} rounded-3xl shadow-2xl`}
-                >
-                  <Icon className="h-8 w-8 text-white" />
-                </motion.div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Badge */}
+      {/* Content — left-aligned, professional layout */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pb-16 sm:pb-0 pt-28 sm:pt-0">
+        <div className="max-w-2xl">
+          {/* Subtle pill badge */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
-            className="inline-flex items-center space-x-3 bg-white dark:bg-gray-800 px-8 py-4 rounded-full mb-10 shadow-2xl border border-gray-200 dark:border-gray-700"
+            className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full mb-6 border border-white/20"
           >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            >
-              <Sparkles className="h-6 w-6 text-yellow-500" />
-            </motion.div>
-            <span className="text-base font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              AI-Powered Travel Planning • Voice-First Experience
+            <div className="w-2 h-2 rounded-full bg-rs-neon-teal animate-pulse" />
+            <span className="text-white/90 text-xs sm:text-sm font-medium tracking-wide">
+              AI-Powered Trip Planning
             </span>
-            <div className="flex -space-x-1">
-              {[...Array(3)].map((_, i) => (
-                <Star key={i} className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-              ))}
-            </div>
           </motion.div>
 
-          {/* Main Heading */}
+          {/* Main heading — clean, impactful */}
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="text-6xl md:text-7xl lg:text-8xl font-black mb-8 leading-tight"
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className={`${luckiestGuy.className} text-[2.75rem] sm:text-6xl md:text-7xl lg:text-8xl leading-[0.95] mb-6`}
           >
-            <span className="text-gray-900 dark:text-white">Plan Your </span>
-            <span className="relative inline-block">
-              <motion.span
-                animate={{
-                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-                }}
-                transition={{ duration: 5, repeat: Infinity }}
-                style={{
-                  backgroundSize: '200% 200%',
-                }}
-                className="bg-gradient-to-r from-blue-600 via-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent"
-              >
-                Perfect Trip
-              </motion.span>
-              <motion.div
-                animate={{
-                  scale: [1, 1.3, 1],
-                  opacity: [0.5, 0.8, 0.5],
-                }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 blur-3xl opacity-30"
-              />
-            </span>
-            <br />
-            <span className="text-gray-900 dark:text-white">With </span>
-            <span className="relative inline-block">
-              <motion.span
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent"
-              >
-                Your Voice
-              </motion.span>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="absolute -top-2 -right-2"
-              >
-                <Mic className="h-12 w-12 text-orange-500" />
-              </motion.div>
+            <span className="block text-white">Plan Your</span>
+            <span className="block text-rs-neon-amber mt-1">Perfect Road Trip</span>
+            <span className="block text-white/80 text-[1.75rem] sm:text-4xl md:text-5xl mt-2">
+              With Just Your Voice
             </span>
           </motion.h1>
 
-          {/* Description */}
+          {/* Description — concise, professional */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="text-2xl md:text-3xl text-gray-700 dark:text-gray-300 mb-14 max-w-4xl mx-auto leading-relaxed font-medium"
+            className="text-white/75 text-base sm:text-lg md:text-xl max-w-lg leading-relaxed mb-8"
           >
-            Experience revolutionary travel planning with{' '}
-            <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
-              AI-powered voice interaction
-            </span>
-            ,{' '}
-            <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
-              intelligent recommendations
-            </span>
-            , and adaptive itineraries
+            Speak your destination. Our AI crafts personalized routes with scenic
+            stops, local favorites, and real-time weather updates —
+            all in seconds.
           </motion.p>
 
-          {/* CTA Buttons */}
+          {/* CTA Buttons — professional sizing */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-20"
+            className="flex flex-col sm:flex-row gap-3 mb-10"
           >
-            <Link href="/signup">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
-                  size="lg"
-                  variant="primary"
-                  className="group text-lg px-10 py-6 shadow-2xl shadow-blue-500/50 hover:shadow-blue-500/70 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                >
-                  <span className="mr-3 font-bold">Get Started Free</span>
-                  <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />
-                </Button>
-              </motion.div>
-            </Link>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <Link href="/signup" className="w-full sm:w-auto">
               <Button
                 size="lg"
-                variant="outline"
-                className="group text-lg px-10 py-6 border-3 shadow-xl hover:shadow-2xl bg-white dark:bg-gray-800"
+                variant="primary"
+                className="w-full sm:w-auto text-base px-7 py-4 shadow-xl shadow-rs-terracotta/30 bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange hover:from-rs-terracotta-dark hover:to-rs-terracotta"
               >
-                <Mic className="mr-3 h-6 w-6 group-hover:scale-125 transition-transform text-orange-600" />
-                <span className="font-bold">Try Voice Demo</span>
+                <span className="font-semibold">Get Started Free</span>
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-            </motion.div>
+            </Link>
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full sm:w-auto text-base px-7 py-4 border-white/30 text-white hover:bg-white/10 backdrop-blur-sm"
+            >
+              <Play className="mr-2 h-4 w-4 fill-current" />
+              <span className="font-semibold">Watch Demo</span>
+            </Button>
           </motion.div>
 
-          {/* Stats Cards */}
+          {/* Social proof — subtle, professional */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ delay: 1.1 }}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto"
+            className="flex items-center gap-6"
           >
-            {[
-              { value: '10K+', label: 'Happy Travelers', gradient: 'from-blue-600 to-cyan-600', icon: '👥' },
-              { value: '50K+', label: 'Trips Planned', gradient: 'from-purple-600 to-pink-600', icon: '✈️' },
-              { value: '4.9/5', label: 'User Rating', gradient: 'from-orange-600 to-red-600', icon: '⭐' },
-            ].map((stat, index) => (
-              <motion.div
-                key={index}
-                whileHover={{ y: -8, scale: 1.05 }}
-                className="relative group"
-              >
-                <div className="p-8 bg-white dark:bg-gray-800 backdrop-blur-xl rounded-3xl border-2 border-gray-200 dark:border-gray-700 shadow-xl group-hover:shadow-2xl transition-all duration-300">
-                  <div className="text-5xl mb-3">{stat.icon}</div>
-                  <div className={`text-5xl font-black bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent mb-3`}>
-                    {stat.value}
-                  </div>
-                  <div className="text-base text-gray-600 dark:text-gray-400 font-semibold">
-                    {stat.label}
-                  </div>
-                  <motion.div
-                    className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-5 rounded-3xl transition-opacity duration-300`}
-                  />
-                </div>
-              </motion.div>
-            ))}
+            {/* Avatars */}
+            <div className="flex -space-x-2">
+              {['#C75B39', '#40C9B0', '#E8842A', '#5BA4CF'].map((color, i) => (
+                <div
+                  key={i}
+                  className="w-8 h-8 rounded-full border-2 border-rs-deep-brown"
+                  style={{ background: color }}
+                />
+              ))}
+            </div>
+            <div>
+              <div className="flex items-center gap-1 mb-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <svg key={i} className="w-3.5 h-3.5 text-rs-neon-amber fill-current" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+              </div>
+              <p className="text-white/50 text-xs font-medium">
+                Trusted by 10,000+ road trippers
+              </p>
+            </div>
           </motion.div>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Animated Scroll Indicator */}
+      {/* Scroll indicator */}
       <motion.div
-        animate={{ y: [0, 15, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="absolute bottom-10 left-1/2 transform -translate-x-1/2"
+        animate={{ y: [0, 8, 0] }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 hidden sm:block"
       >
-        <div className="w-8 h-14 border-3 border-gray-400 dark:border-gray-600 rounded-full flex justify-center p-2">
-          <motion.div
-            animate={{ y: [0, 20, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="w-2 h-4 bg-gradient-to-b from-blue-600 to-purple-600 rounded-full"
-          />
+        <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center pt-2">
+          <div className="w-1.5 h-3 bg-white/50 rounded-full" />
         </div>
       </motion.div>
     </section>

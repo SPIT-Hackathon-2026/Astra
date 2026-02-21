@@ -1,8 +1,13 @@
 'use client';
 
-import { Mic, Zap, Users, Calendar, Globe, TrendingUp, Sparkles } from 'lucide-react';
-import { Card } from '../ui/Card';
+import { Mic, Zap, Users, Calendar, Globe, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Luckiest_Guy } from 'next/font/google';
+
+const luckiestGuy = Luckiest_Guy({
+  weight: '400',
+  subsets: ['latin'],
+});
 
 export const Features = () => {
   const features = [
@@ -10,159 +15,93 @@ export const Features = () => {
       icon: Mic,
       title: 'Voice-First Planning',
       description: 'Plan entire trips using natural voice commands. Just speak your destination and preferences.',
-      gradient: 'from-blue-500 via-blue-600 to-cyan-600',
-      iconBg: 'bg-gradient-to-br from-blue-500 to-cyan-500',
-      glowColor: 'shadow-blue-500/50',
+      gradient: 'from-rs-terracotta to-rs-sunset-orange',
     },
     {
       icon: Zap,
       title: 'Instant Itineraries',
-      description: 'Get personalized travel plans in seconds, optimized for your schedule and interests.',
-      gradient: 'from-yellow-500 via-orange-500 to-red-500',
-      iconBg: 'bg-gradient-to-br from-yellow-500 to-orange-500',
-      glowColor: 'shadow-yellow-500/50',
+      description: 'Get a personalized travel plan in seconds, optimized for scenic routes and local gems.',
+      gradient: 'from-rs-neon-amber to-rs-sunset-orange',
     },
     {
       icon: Users,
-      title: 'Group Collaboration',
-      description: 'Plan trips together with friends and family. Real-time updates and shared preferences.',
-      gradient: 'from-green-500 via-emerald-500 to-teal-600',
-      iconBg: 'bg-gradient-to-br from-green-500 to-emerald-500',
-      glowColor: 'shadow-green-500/50',
+      title: 'Group Planning',
+      description: 'Collaborate with friends and family. Everyone adds stops and votes on the best routes.',
+      gradient: 'from-rs-neon-teal to-rs-sky-blue',
     },
     {
       icon: Calendar,
       title: 'Smart Scheduling',
-      description: 'AI-powered scheduling that adapts to flight delays, weather, and real-time conditions.',
-      gradient: 'from-purple-500 via-violet-500 to-indigo-600',
-      iconBg: 'bg-gradient-to-br from-purple-500 to-indigo-500',
-      glowColor: 'shadow-purple-500/50',
+      description: 'Real-time weather and traffic data automatically adjusts your route for the best experience.',
+      gradient: 'from-rs-sunset-purple to-rs-sunset-pink',
     },
     {
       icon: Globe,
-      title: 'Global Coverage',
-      description: 'Access recommendations for destinations worldwide with local insights and hidden gems.',
-      gradient: 'from-pink-500 via-rose-500 to-red-600',
-      iconBg: 'bg-gradient-to-br from-pink-500 to-rose-500',
-      glowColor: 'shadow-pink-500/50',
+      title: 'Hidden Gems',
+      description: 'Discover roadside diners, scenic overlooks, and off-the-beaten-path destinations.',
+      gradient: 'from-rs-dusty-red to-rs-terracotta',
     },
     {
       icon: TrendingUp,
-      title: 'Learn & Improve',
-      description: 'Our AI learns from your trips to provide better recommendations over time.',
-      gradient: 'from-orange-500 via-amber-500 to-yellow-600',
-      iconBg: 'bg-gradient-to-br from-orange-500 to-amber-500',
-      glowColor: 'shadow-orange-500/50',
+      title: 'Adaptive Learning',
+      description: 'The more you travel, the better our recommendations become. Your personal route advisor.',
+      gradient: 'from-rs-desert-brown to-rs-terracotta-light',
     },
   ];
 
   return (
-    <section className="py-24 bg-gradient-to-b from-white via-gray-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 relative overflow-hidden">
-      {/* Animated Background Blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-          }}
-          transition={{ duration: 20, repeat: Infinity }}
-          className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.3, 1],
-            rotate: [0, -90, 0],
-          }}
-          transition={{ duration: 25, repeat: Infinity }}
-          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-pink-400/20 to-orange-400/20 rounded-full blur-3xl"
-        />
-      </div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-20 sm:py-28 bg-white relative">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           viewport={{ once: true }}
-          className="text-center mb-20"
+          className="text-center mb-14 sm:mb-20"
         >
-          <motion.div
-            initial={{ scale: 0 }}
-            whileInView={{ scale: 1 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-sm px-6 py-3 rounded-full mb-6 border border-blue-200 dark:border-blue-800"
-          >
-            <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-pulse" />
-            <span className="text-sm font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              POWERFUL FEATURES
-            </span>
-          </motion.div>
-
-          <h2 className="text-5xl md:text-6xl font-extrabold mb-6">
-            <span className="text-gray-900 dark:text-white">Everything You Need</span>
-            <br />
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              For Perfect Travel
-            </span>
+          <p className="text-rs-terracotta text-sm font-semibold tracking-widest uppercase mb-3">
+            Features
+          </p>
+          <h2 className={`${luckiestGuy.className} text-3xl sm:text-4xl md:text-5xl text-rs-deep-brown mb-4`}>
+            Everything You Need
           </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
-            Powerful features designed to make travel planning effortless, intelligent, and enjoyable
+          <p className="text-rs-desert-brown text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+            Powerful tools designed to make road trip planning effortless,
+            from the first idea to the final mile.
           </p>
         </motion.div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {features.map((feature, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 50 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ duration: 0.4, delay: index * 0.08 }}
               viewport={{ once: true }}
-              whileHover={{ y: -12, scale: 1.02 }}
               className="group"
             >
-              <Card hover className="p-8 h-full relative overflow-hidden border-2 border-transparent hover:border-gray-200 dark:hover:border-gray-700">
-                {/* Gradient Background on Hover */}
-                <motion.div
-                  className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}
-                />
-
-                {/* Animated Icon */}
-                <motion.div
-                  whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
-                  transition={{ duration: 0.5 }}
-                  className="relative mb-6"
-                >
-                  <div className={`w-16 h-16 rounded-2xl ${feature.iconBg} flex items-center justify-center shadow-xl ${feature.glowColor} group-hover:shadow-2xl transition-shadow duration-300`}>
-                    <feature.icon className="h-8 w-8 text-white" />
-                  </div>
-                  {/* Glow Effect */}
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.2, 1],
-                      opacity: [0.5, 0.8, 0.5],
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} blur-xl opacity-0 group-hover:opacity-30`}
-                  />
-                </motion.div>
+              <div className="relative p-7 sm:p-8 rounded-2xl border border-rs-sand-dark/25 bg-rs-sand-light/40 hover:bg-white hover:shadow-xl hover:shadow-rs-terracotta/5 hover:border-rs-terracotta/20 transition-all duration-300 h-full">
+                {/* Icon */}
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-5 shadow-md group-hover:scale-105 transition-transform duration-300`}>
+                  <feature.icon className="h-6 w-6 text-white" />
+                </div>
 
                 {/* Title */}
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                <h3 className="text-lg sm:text-xl font-bold text-rs-deep-brown mb-2 group-hover:text-rs-terracotta transition-colors duration-300">
                   {feature.title}
                 </h3>
 
                 {/* Description */}
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                <p className="text-rs-desert-brown text-sm sm:text-[0.938rem] leading-relaxed">
                   {feature.description}
                 </p>
 
-                {/* Decorative Corner */}
-                <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity duration-500`} />
-              </Card>
+                {/* Subtle accent line */}
+                <div className={`mt-6 h-0.5 w-12 rounded-full bg-gradient-to-r ${feature.gradient} opacity-40 group-hover:w-20 group-hover:opacity-70 transition-all duration-500`} />
+              </div>
             </motion.div>
           ))}
         </div>

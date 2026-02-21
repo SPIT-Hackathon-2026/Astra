@@ -3,23 +3,30 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { 
-  Plane, 
-  MapPin, 
-  Calendar, 
-  Mic, 
+import Image from 'next/image';
+import {
+  MapPin,
+  Calendar,
+  Mic,
   Plus,
   Settings,
-  User,
   LogOut,
-  TrendingUp,
   Clock,
   Star,
-  ChevronRight
+  ChevronRight,
+  Car,
+  Route,
+  Bell,
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { TripPlanningForm } from '../../components/trip/TripPlanningForm';
+import { Luckiest_Guy } from 'next/font/google';
+
+const luckiestGuy = Luckiest_Guy({
+  weight: '400',
+  subsets: ['latin'],
+});
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -31,20 +38,18 @@ export default function DashboardPage() {
     if (status === 'unauthenticated') {
       router.push('/login');
     }
-
-    // Set greeting based on time
     const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good Morning');
-    else if (hour < 18) setGreeting('Good Afternoon');
-    else setGreeting('Good Evening');
+    if (hour < 12) setGreeting('Good morning');
+    else if (hour < 18) setGreeting('Good afternoon');
+    else setGreeting('Good evening');
   }, [status, router]);
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-950 dark:to-purple-950">
+      <div className="min-h-screen flex items-center justify-center bg-rs-sand-light">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-rs-terracotta border-t-transparent mx-auto mb-3" />
+          <p className="text-rs-desert-brown text-sm">Loading your trips...</p>
         </div>
       </div>
     );
@@ -56,184 +61,198 @@ export default function DashboardPage() {
   };
 
   const stats = [
-    { label: 'Active Trips', value: '3', icon: Plane, color: 'from-blue-500 to-cyan-500' },
-    { label: 'Places Visited', value: '24', icon: MapPin, color: 'from-purple-500 to-pink-500' },
-    { label: 'Upcoming', value: '2', icon: Calendar, color: 'from-orange-500 to-red-500' },
-    { label: 'Saved Routes', value: '12', icon: Star, color: 'from-green-500 to-emerald-500' },
+    { label: 'Active Trips', value: '3', icon: Car, color: 'from-rs-terracotta to-rs-sunset-orange' },
+    { label: 'Places Visited', value: '24', icon: MapPin, color: 'from-rs-neon-teal to-rs-sky-blue' },
+    { label: 'Upcoming', value: '2', icon: Calendar, color: 'from-rs-neon-amber to-rs-sunset-orange' },
+    { label: 'Saved Routes', value: '12', icon: Star, color: 'from-rs-sunset-purple to-rs-sunset-pink' },
   ];
 
-  const recentTrips = [
+  const trips = [
     {
-      destination: 'Paris, France',
-      date: 'Dec 15-22, 2024',
+      name: 'Route 66 Classic',
+      date: 'Dec 15–22, 2024',
       status: 'Upcoming',
-      image: '🗼',
-      color: 'from-pink-500 to-rose-500',
+      image: '/images/trip-route66.png',
+      statusColor: 'bg-rs-neon-amber/15 text-rs-sunset-orange',
     },
     {
-      destination: 'Tokyo, Japan',
-      date: 'Jan 5-12, 2025',
+      name: 'Pacific Coast Highway',
+      date: 'Jan 5–12, 2025',
       status: 'Planning',
-      image: '🗾',
-      color: 'from-blue-500 to-cyan-500',
+      image: '/images/trip-coast.png',
+      statusColor: 'bg-rs-neon-teal/15 text-rs-neon-teal',
     },
     {
-      destination: 'New York, USA',
-      date: 'Nov 10-15, 2024',
+      name: 'Grand Canyon Loop',
+      date: 'Nov 10–15, 2024',
       status: 'Completed',
-      image: '🗽',
-      color: 'from-purple-500 to-indigo-500',
+      image: '/images/trip-canyon.png',
+      statusColor: 'bg-rs-terracotta/10 text-rs-terracotta',
     },
   ];
+
+  const firstName = session?.user?.name?.split(' ')[0] || 'Traveler';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-purple-950 dark:to-pink-950">
-      {/* Top Navigation */}
-      <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
-                <Plane className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-rs-sand-light">
+      {/* Dashboard Nav */}
+      <nav className="bg-white/90 backdrop-blur-xl border-b border-rs-sand-dark/25 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center gap-2.5">
+              <Image src="/images/logo-icon.png" alt="Radiator Routes" width={32} height={32} className="rounded-lg" />
+              <span className={`${luckiestGuy.className} text-lg text-rs-terracotta hidden sm:block`}>
                 Radiator Routes
               </span>
             </div>
-            
-            <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                <Settings className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button className="p-2.5 rounded-lg hover:bg-rs-sand/50 transition-colors text-rs-desert-brown" aria-label="Notifications">
+                <Bell className="h-5 w-5" />
               </button>
-              <button 
+              <button className="p-2.5 rounded-lg hover:bg-rs-sand/50 transition-colors text-rs-desert-brown" aria-label="Settings">
+                <Settings className="h-5 w-5" />
+              </button>
+              <div className="w-px h-6 bg-rs-sand-dark/30 mx-1 hidden sm:block" />
+              <button
                 onClick={handleSignOut}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-rs-sand/50 transition-colors text-rs-desert-brown"
               >
-                <LogOut className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Logout</span>
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline text-sm font-medium">Log out</span>
               </button>
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Welcome Section */}
-        <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
-            {greeting}, {session?.user?.name?.split(' ')[0] || 'Traveler'}! 👋
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-6 sm:py-10">
+        {/* Welcome */}
+        <div className="mb-8 sm:mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold text-rs-deep-brown mb-1">
+            {greeting}, {firstName}
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400">
+          <p className="text-rs-desert-brown text-sm sm:text-base">
             Ready to plan your next adventure?
           </p>
         </div>
 
-        {/* Quick Action - Create Trip */}
-        <Card className="p-8 mb-12 bg-gradient-to-r from-blue-600 to-purple-600 border-none text-white shadow-2xl">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="mb-6 md:mb-0">
-              <h2 className="text-3xl font-bold mb-2">Plan New Trip</h2>
-              <p className="text-blue-100 text-lg">Use voice or text to create your perfect itinerary</p>
-            </div>
-            <div className="flex space-x-4">
-              <Button
-                onClick={() => setShowTripForm(true)}
-                variant="secondary"
-                className="bg-white text-blue-600 hover:bg-gray-100 shadow-xl"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                Create Trip
-              </Button>
-              <Button
-                variant="outline"
-                className="border-white text-white hover:bg-white/10"
-              >
-                <Mic className="mr-2 h-5 w-5" />
-                Voice Plan
-              </Button>
+        {/* Quick Action Card */}
+        <div className="relative rounded-2xl overflow-hidden mb-8 sm:mb-10 shadow-lg">
+          <Image
+            src="/images/hero-bg.png"
+            alt="Open road"
+            width={1200}
+            height={300}
+            className="w-full h-40 sm:h-48 object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-rs-deep-brown/90 via-rs-deep-brown/70 to-rs-deep-brown/40" />
+          <div className="absolute inset-0 flex items-center px-6 sm:px-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Plan a New Trip</h2>
+                <p className="text-white/60 text-sm sm:text-base">Use voice or text to create your perfect route</p>
+              </div>
+              <div className="flex gap-3 w-full sm:w-auto">
+                <Button 
+                  variant="primary" 
+                  className="flex-1 sm:flex-none bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange shadow-md"
+                  onClick={() => setShowTripForm(true)}
+                >
+                  <Mic className="mr-2 h-4 w-4" />
+                  Voice Plan
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 sm:flex-none border-white/30 text-white hover:bg-white/10"
+                  onClick={() => setShowTripForm(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Trip
+                </Button>
+              </div>
             </div>
           </div>
-        </Card>
+        </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {stats.map((stat, index) => (
-            <Card key={index} hover className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color}`}>
-                  <stat.icon className="h-6 w-6 text-white" />
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-10">
+          {stats.map((stat, i) => (
+            <div key={i} className="bg-white rounded-xl p-4 sm:p-5 border border-rs-sand-dark/20 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.color}`}>
+                  <stat.icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
-                <TrendingUp className="h-5 w-5 text-green-500" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+              <div className="text-2xl sm:text-3xl font-bold text-rs-deep-brown mb-0.5">
                 {stat.value}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-xs sm:text-sm text-rs-desert-brown">
                 {stat.label}
               </div>
-            </Card>
+            </div>
           ))}
         </div>
 
         {/* Recent Trips */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <div className="mb-8 sm:mb-10">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg sm:text-xl font-bold text-rs-deep-brown">
               Your Trips
             </h2>
-            <button className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium flex items-center">
-              View All
-              <ChevronRight className="h-5 w-5 ml-1" />
+            <button className="text-rs-terracotta text-sm font-medium flex items-center gap-1 hover:underline">
+              View all
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {recentTrips.map((trip, index) => (
-              <Card key={index} hover className="overflow-hidden group cursor-pointer">
-                <div className={`h-32 bg-gradient-to-br ${trip.color} flex items-center justify-center text-6xl`}>
-                  {trip.image}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {trips.map((trip, i) => (
+              <div key={i} className="bg-white rounded-xl overflow-hidden border border-rs-sand-dark/20 hover:shadow-lg hover:border-rs-terracotta/15 transition-all duration-300 cursor-pointer group">
+                <div className="relative h-36 sm:h-40 overflow-hidden">
+                  <Image
+                    src={trip.image}
+                    alt={trip.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
                 </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      trip.status === 'Upcoming' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                      trip.status === 'Planning' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                      'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                    }`}>
+                <div className="p-4 sm:p-5">
+                  <div className="mb-2">
+                    <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold ${trip.statusColor}`}>
                       {trip.status}
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 transition-colors">
-                    {trip.destination}
+                  <h3 className="text-base sm:text-lg font-bold text-rs-deep-brown mb-1.5 group-hover:text-rs-terracotta transition-colors">
+                    {trip.name}
                   </h3>
-                  <div className="flex items-center text-gray-600 dark:text-gray-400">
-                    <Clock className="h-4 w-4 mr-2" />
-                    <span className="text-sm">{trip.date}</span>
+                  <div className="flex items-center text-rs-desert-brown text-sm">
+                    <Clock className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                    {trip.date}
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* AI Recommendations */}
-        <Card className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-800">
-          <div className="flex items-start space-x-4">
-            <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
-              <Star className="h-6 w-6 text-white" />
+        {/* Recommendations */}
+        <div className="bg-white rounded-xl p-5 sm:p-7 border border-rs-sand-dark/20">
+          <div className="flex items-start gap-4">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-rs-sunset-purple to-rs-sunset-pink flex-shrink-0">
+              <Route className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                AI Recommendations
+              <h3 className="text-base sm:text-lg font-bold text-rs-deep-brown mb-1.5">
+                Recommended Routes
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Based on your travel history, we think you'll love these destinations
+              <p className="text-rs-desert-brown text-sm mb-4">
+                Based on your travel history, you might enjoy these:
               </p>
-              <div className="flex flex-wrap gap-3">
-                {['Bali, Indonesia', 'Barcelona, Spain', 'Dubai, UAE', 'Iceland'].map((place, i) => (
+              <div className="flex flex-wrap gap-2">
+                {['Blue Ridge Parkway', 'Overseas Highway', 'Going-to-the-Sun Road', 'Tail of the Dragon'].map((place, i) => (
                   <span
                     key={i}
-                    className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:scale-105 transform transition-transform"
+                    className="px-3 py-1.5 bg-rs-sand-light rounded-lg text-sm font-medium text-rs-deep-brown border border-rs-sand-dark/20 hover:bg-rs-terracotta/8 hover:text-rs-terracotta hover:border-rs-terracotta/20 transition-all cursor-pointer"
                   >
                     {place}
                   </span>
@@ -241,7 +260,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Trip Planning Modal */}
