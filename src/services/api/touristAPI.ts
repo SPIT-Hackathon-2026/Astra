@@ -54,7 +54,7 @@ export async function getTouristSpots(
 
     // Step 2: Build Overpass query based on interests
     const radius = 15000; // 15km radius
-    
+
     let query = `
       [out:json][timeout:30];
       (
@@ -95,23 +95,62 @@ export async function getTouristSpots(
       out skel qt;
     `;
 
-    console.log(`🔍 Querying Overpass API...`);
+    // Step 3: Query APIs
+    let elements: any[] = [];
 
-    // Step 3: Query Overpass API
-    const overpassResponse = await axios.post(
-      'https://overpass-api.de/api/interpreter',
-      query,
-      {
-        headers: {
-          'Content-Type': 'text/plain'
-        },
-        timeout: 35000
+    if (process.env.OPENTRIPMAP_API_KEY) {
+      console.log(`🔍 Querying OpenTripMap API...`);
+      try {
+        const otmResponse = await axios.get(
+          `https://api.opentripmap.com/0.1/en/places/radius`,
+          {
+            params: {
+              radius: 15000,
+              lon: lon,
+              lat: lat,
+              kinds: interests?.length ? interests.join(',') : 'interesting_places',
+              format: 'json',
+              apikey: process.env.OPENTRIPMAP_API_KEY
+            },
+            timeout: 10000
+          }
+        );
+
+        if (otmResponse.data && Array.isArray(otmResponse.data)) {
+          // OpenTripMap returns detailed info in a separate call or we can use what's there
+          // For now, let's map what we have and maybe fetch details for top ones
+          elements = otmResponse.data.map(item => ({
+            tags: {
+              name: item.name,
+              tourism: item.kinds,
+              rating: item.rate
+            },
+            lat: item.point.lat,
+            lon: item.point.lon,
+            xid: item.xid
+          }));
+        }
+      } catch (err) {
+        console.error('OpenTripMap error, falling back to Overpass:', err);
       }
-    );
+    }
+
+    if (elements.length === 0) {
+      console.log(`🔍 Querying Overpass API... (Fallback)`);
+      const overpassResponse = await axios.post(
+        'https://overpass-api.de/api/interpreter',
+        query,
+        {
+          headers: {
+            'Content-Type': 'text/plain'
+          },
+          timeout: 25000
+        }
+      );
+      elements = overpassResponse.data.elements || [];
+    }
 
     const spots: TouristSpot[] = [];
-    const elements = overpassResponse.data.elements || [];
-
     console.log(`📦 Received ${elements.length} raw elements`);
 
     // Step 4: Process elements
@@ -119,15 +158,15 @@ export async function getTouristSpots(
 
     for (const element of elements) {
       if (!element.tags || !element.tags.name) continue;
-      
+
       // Skip duplicates
       if (seenNames.has(element.tags.name)) continue;
       seenNames.add(element.tags.name);
 
-      const category = 
-        element.tags.tourism || 
-        element.tags.historic || 
-        element.tags.leisure || 
+      const category =
+        element.tags.tourism ||
+        element.tags.historic ||
+        element.tags.leisure ||
         element.tags.amenity ||
         element.tags.natural ||
         'attraction';
@@ -149,16 +188,16 @@ export async function getTouristSpots(
       if (catLower.includes('fort') || catLower.includes('castle') || catLower.includes('palace')) estimatedTime = 2.5;
 
       // Generate description
-      let description = 
-        element.tags.description || 
+      let description =
+        element.tags.description ||
         element.tags['description:en'] ||
         element.tags.information ||
         element.tags.note ||
         `A popular ${category.replace(/_/g, ' ')} in ${destination}`;
 
       // Get opening hours
-      const openingHours = element.tags.opening_hours || 
-        element.tags['opening_hours:covid19'] || 
+      const openingHours = element.tags.opening_hours ||
+        element.tags['opening_hours:covid19'] ||
         (category.includes('park') ? '24/7' : 'Check timings');
 
       // Get entry fee
@@ -226,42 +265,42 @@ export async function getTouristSpots(
       new Map(spots.map(spot => [spot.name, spot])).values()
     );
 
-   // After processing all spots, before returning:
+    // After processing all spots, before returning:
 
-// Calculate popularity score
-spots.forEach(spot => {
-  let popularity = 0;
+    // Calculate popularity score
+    spots.forEach(spot => {
+      let popularity = 0;
 
-  // Rating factor (40%)
-  popularity += (spot.rating / 5) * 40;
+      // Rating factor (40%)
+      popularity += (spot.rating / 5) * 40;
 
-  // Category factor (30%)
-  const popularCategories = ['monument', 'museum', 'beach', 'temple', 'fort', 'palace', 'viewpoint'];
-  const category = spot.category.toLowerCase();
-  if (popularCategories.some(cat => category.includes(cat))) {
-    popularity += 30;
-  }
+      // Category factor (30%)
+      const popularCategories = ['monument', 'museum', 'beach', 'temple', 'fort', 'palace', 'viewpoint'];
+      const category = spot.category.toLowerCase();
+      if (popularCategories.some(cat => category.includes(cat))) {
+        popularity += 30;
+      }
 
-  // Description length (indication of importance) (20%)
-  if (spot.description.length > 150) {
-    popularity += 20;
-  }
+      // Description length (indication of importance) (20%)
+      if (spot.description.length > 150) {
+        popularity += 20;
+      }
 
-  // Has image (10%)
-  if (spot.image) {
-    popularity += 10;
-  }
+      // Has image (10%)
+      if (spot.image) {
+        popularity += 10;
+      }
 
-  spot.popularity = popularity;
-  spot.isPopular = popularity >= 70; // Mark as popular if score >= 70
-});
+      spot.popularity = popularity;
+      spot.isPopular = popularity >= 70; // Mark as popular if score >= 70
+    });
 
-// Sort by popularity
-spots.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+    // Sort by popularity
+    spots.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 
-console.log(`✅ Found ${spots.length} spots (${spots.filter(s => s.isPopular).length} popular)`);
+    console.log(`✅ Found ${spots.length} spots (${spots.filter(s => s.isPopular).length} popular)`);
 
-return spots.slice(0, 30);
+    return spots.slice(0, 30);
   } catch (error) {
     console.error('❌ Error fetching tourist spots:', error);
     return [];
@@ -272,7 +311,7 @@ return spots.slice(0, 30);
 async function getWikipediaSpots(city: string, lat: number, lon: number): Promise<TouristSpot[]> {
   try {
     console.log(`📚 Fetching from Wikipedia...`);
-    
+
     const response = await axios.get(
       `https://en.wikipedia.org/w/api.php`,
       {
@@ -311,7 +350,7 @@ async function getWikipediaSpots(city: string, lat: number, lon: number): Promis
       );
 
       const pageData = detailResponse.data.query?.pages?.[page.pageid];
-      
+
       if (pageData && pageData.extract) {
         spots.push({
           name: page.title,
@@ -359,7 +398,7 @@ export async function enrichSpotWithWikipedia(spotName: string, city: string): P
 
     const pages = response.data.query.pages;
     const page = Object.values(pages)[0] as any;
-    
+
     return page.extract?.substring(0, 500) || '';
   } catch (error) {
     return '';
