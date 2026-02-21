@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { TripPlanningForm } from '../../components/trip/TripPlanningForm';
 import { Luckiest_Guy } from 'next/font/google';
 
 const luckiestGuy = Luckiest_Guy({
@@ -32,6 +33,7 @@ export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [greeting, setGreeting] = useState('');
+  const [showTripForm, setShowTripForm] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -152,16 +154,22 @@ export default function DashboardPage() {
                 <p className="text-white/60 text-sm sm:text-base">Use voice or text to create your perfect route</p>
               </div>
               <div className="flex gap-3 w-full sm:w-auto">
-                <Button variant="primary" className="flex-1 sm:flex-none bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange shadow-md">
+                <Button 
+                  variant="primary" 
+                  className="flex-1 sm:flex-none bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange shadow-md"
+                  onClick={() => setShowTripForm(true)}
+                >
                   <Mic className="mr-2 h-4 w-4" />
                   Voice Plan
                 </Button>
-                <Link href="/plan" className="flex-1 sm:flex-none">
-                  <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/10">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Manual
-                  </Button>
-                </Link>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 sm:flex-none border-white/30 text-white hover:bg-white/10"
+                  onClick={() => setShowTripForm(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Trip
+                </Button>
               </div>
             </div>
           </div>
@@ -255,6 +263,11 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Trip Planning Modal */}
+      {showTripForm && (
+        <TripPlanningForm onClose={() => setShowTripForm(false)} />
+      )}
     </div>
   );
 }
