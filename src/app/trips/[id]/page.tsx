@@ -4,23 +4,23 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  Plane,
+  Train,
+  Bus,
+  Car,
+  Clock,
+  MapPin,
+  Star,
+  CheckCircle,
+  Leaf,
+  IndianRupee,
   Calendar,
   Users,
-  DollarSign,
-  MapPin,
+  Navigation,
   Sparkles,
-  Wallet,
-  Plane,
-  Hotel,
-  Utensils,
-  Landmark,
-  Save,
-  Loader,
 } from 'lucide-react';
-import TransportFilter from '../../../components/trip/TransportFilter';
-import TransportSelection from '../../../components/trip/TransportSelection';
-import TouristSpotSelection from '../../../components/trip/TouristSpotSelection';
-import ItineraryDisplay from '../../../components/trip/ItineraryDisplay';
+import { Card } from '../../../components/ui/Card';
+import { Button } from '../../../components/ui/Button';
 
 export default function TripDetailsPage() {
   const params = useParams();
@@ -28,176 +28,94 @@ export default function TripDetailsPage() {
   const [tripData, setTripData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filteredTransport, setFilteredTransport] = useState<any[]>([]);
+  const [selectedTransport, setSelectedTransport] = useState<any>(null);
   const [selectedSpots, setSelectedSpots] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (params.id) {
-      fetchTripDetails();
-    }
+    if (params.id) fetchTripDetails();
   }, [params.id]);
 
    const fetchTripDetails = async () => {
     try {
-      console.log('🔍 Fetching trip:', params.id);
-      
       const response = await fetch(`/api/trips/${params.id}`);
       const data = await response.json();
-
-      console.log('📥 Raw API Response:', data);
-      console.log('📦 Trip object keys:', Object.keys(data.trip || {}));
-      console.log('🎯 allTouristSpots exists?', 'allTouristSpots' in (data.trip || {}));
-      console.log('🎯 touristSpots exists?', 'touristSpots' in (data.trip || {}));
-      console.log('🎯 allTouristSpots value:', data.trip?.allTouristSpots);
-      console.log('🎯 touristSpots value:', data.trip?.touristSpots);
-      
-      if (!response.ok) {
-        setError(data.error || 'Failed to load trip');
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('✅ Trip data counts:');
-      console.log('  - Transport options:', data.trip?.transportOptions?.length || 0);
-      console.log('  - Tourist spots (allTouristSpots):', data.trip?.allTouristSpots?.length || 0);
-      console.log('  - Tourist spots (touristSpots):', data.trip?.touristSpots?.length || 0);
-      console.log('  - Itinerary days:', data.trip?.itinerary?.length || 0);
-
+      if (!response.ok) { setError(data.error || 'Failed to load trip'); setIsLoading(false); return; }
       setTripData(data.trip);
-      setFilteredTransport(data.trip.transportOptions || []);
-      setSelectedSpots(data.trip.selectedTouristSpots || []);
-    } catch (error: any) {
-      console.error('❌ Error fetching trip:', error);
+      if (data.trip.selectedTransport) setSelectedTransport(data.trip.selectedTransport);
+      if (data.trip.selectedTouristSpots) setSelectedSpots(data.trip.selectedTouristSpots);
+    } catch {
       setError('Failed to load trip details');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFilterChange = (filters: any) => {
-    if (!tripData || !tripData.transportOptions) return;
-    
-    let filtered = [...tripData.transportOptions];
-
-    if (filters.budget) {
-      filtered = filtered.filter(
-        opt => opt.price * 2 * tripData.travelers <= filters.budget
-      );
-    }
-
-    if (filters.modes && filters.modes.length > 0) {
-      filtered = filtered.filter(opt => filters.modes.includes(opt.mode));
-    }
-
-    if (filters.maxDuration) {
-      filtered = filtered.filter(opt => opt.duration <= filters.maxDuration);
-    }
-
-    if (filters.sortBy === 'price') {
-      filtered.sort((a, b) => a.price - b.price);
-    } else if (filters.sortBy === 'duration') {
-      filtered.sort((a, b) => a.duration - b.duration);
-    }
-
-    setFilteredTransport(filtered);
+  const handleSelectTransport = (option: any) => {
+    setSelectedTransport(option);
+    // In a real app, you'd call an API to save this to the trip record
+    setTripData((prev: any) => ({
+      ...prev,
+      costs: {
+        ...prev.costs,
+        transport: option.price,
+        total: (prev.costs.accommodation || 0) + (prev.costs.food || 0) + (prev.costs.attractions || 0) + option.price
+      }
+    }));
   };
 
-  const handleSelectTransport = async (option: any) => {
-    try {
-      const res = await fetch(`/api/trips/${params.id}/transport`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transportOption: option }),
+  const handleSelectSpot = (spot: any) => {
+    setSelectedSpots(prev => {
+      const isSelected = prev.includes(spot.name);
+      const next = isSelected ? prev.filter(name => name !== spot.name) : [...prev, spot.name];
+
+      // Update attractions cost
+      const spotCost = spot.entryFee || 0;
+      setTripData((old: any) => {
+        const newAttractionsCost = isSelected
+          ? (old.costs.attractions - spotCost)
+          : (old.costs.attractions + spotCost);
+
+        return {
+          ...old,
+          costs: {
+            ...old.costs,
+            attractions: newAttractionsCost,
+            total: (old.costs.transport || 0) + (old.costs.accommodation || 0) + (old.costs.food || 0) + newAttractionsCost
+          }
+        };
       });
 
-      const data = await res.json();
-      if (data.success) {
-        setTripData({
-          ...tripData,
-          selectedTransport: option,
-          costs: data.costs,
-        });
-      }
-    } catch (error) {
-      console.error('Error selecting transport:', error);
-    }
+      return next;
+    });
   };
 
-  const handleDeselectTransport = async () => {
-    try {
-      const res = await fetch(`/api/trips/${params.id}/transport`, {
-        method: 'DELETE',
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setTripData({
-          ...tripData,
-          selectedTransport: null,
-          costs: data.costs,
-        });
-      }
-    } catch (error) {
-      console.error('Error deselecting transport:', error);
+  const getTransportIcon = (mode: string) => {
+    const cls = 'h-5 w-5 text-white';
+    switch (mode) {
+      case 'flight': return <Plane className={cls} />;
+      case 'train': return <Train className={cls} />;
+      case 'bus': return <Bus className={cls} />;
+      case 'car': return <Car className={cls} />;
+      default: return <Navigation className={cls} />;
     }
   };
 
-  const handleToggleSpot = async (spotName: string) => {
-    const newSelected = selectedSpots.includes(spotName)
-      ? selectedSpots.filter(s => s !== spotName)
-      : [...selectedSpots, spotName];
-
-    try {
-      const res = await fetch(`/api/trips/${params.id}/spots`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selectedSpots: newSelected }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setSelectedSpots(newSelected);
-        setTripData({
-          ...tripData,
-          selectedTouristSpots: newSelected,
-          itinerary: data.itinerary,
-          costs: data.costs,
-        });
-      }
-    } catch (error) {
-      console.error('Error updating spots:', error);
-    }
-  };
-
-  const handleSaveTrip = async () => {
-    try {
-      setSaving(true);
-      const res = await fetch(`/api/trips/${params.id}/save`, {
-        method: 'POST',
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        alert('Trip saved successfully! ✅');
-        router.push('/dashboard');
-      } else {
-        alert('Failed to save trip: ' + (data.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error saving trip:', error);
-      alert('Failed to save trip');
-    } finally {
-      setSaving(false);
+  const modeGradient = (mode: string) => {
+    switch (mode) {
+      case 'flight': return 'from-rs-sky-blue to-rs-sky-blue-light';
+      case 'train': return 'from-rs-terracotta to-rs-sunset-orange';
+      case 'bus': return 'from-rs-neon-teal to-emerald-400';
+      case 'car': return 'from-rs-sunset-purple to-rs-sunset-pink';
+      default: return 'from-rs-desert-brown to-rs-terracotta-light';
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-950 dark:to-purple-950">
+      <div className="min-h-screen flex items-center justify-center bg-rs-sand-light">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400 font-medium">Loading trip details...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-rs-terracotta mx-auto mb-4" />
+          <p className="text-rs-desert-brown">Loading trip details...</p>
         </div>
       </div>
     );
@@ -205,19 +123,16 @@ export default function TripDetailsPage() {
 
   if (error || !tripData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-950 dark:to-purple-950 p-4">
-        <div className="text-center max-w-md bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl">
-          <div className="text-5xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Trip Not Found
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">{error || 'Unable to load trip details'}</p>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
-          >
-            Back to Dashboard
-          </button>
+      <div className="min-h-screen flex items-center justify-center bg-rs-sand-light">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 rounded-full bg-rs-sand flex items-center justify-center mx-auto mb-4">
+            <Navigation className="h-8 w-8 text-rs-terracotta" />
+          </div>
+          <h2 className="text-2xl font-bold text-rs-deep-brown mb-2">{error || 'Trip not found'}</h2>
+          <p className="text-rs-desert-brown mb-6">We couldn't find the trip you're looking for.</p>
+          <Button onClick={() => router.push('/dashboard')} variant="primary" className="bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange">
+            <ArrowLeft className="mr-2 h-5 w-5" /> Back to Dashboard
+          </Button>
         </div>
       </div>
     );
@@ -229,157 +144,324 @@ export default function TripDetailsPage() {
   ) + 1;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-purple-950 dark:to-pink-950 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-rs-sand-light">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 transition-colors font-medium"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            Back to Dashboard
+          <button onClick={() => router.push('/dashboard')} className="flex items-center text-rs-terracotta hover:text-rs-terracotta-dark mb-4 transition-colors text-sm font-medium">
+            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Dashboard
           </button>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-rs-deep-brown mb-2">
                 {tripData.source} → {tripData.destination}
               </h1>
-              <button
-                onClick={handleSaveTrip}
-                disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50"
-              >
-                {saving ? (
-                  <>
-                    <Loader className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Save Trip
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-4 text-rs-desert-brown text-sm">
+                <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {tripData.duration || '–'} days</span>
+                <span className="flex items-center gap-1"><Users className="h-4 w-4" /> {tripData.travelers} traveler{tripData.travelers > 1 ? 's' : ''}</span>
+              </div>
             </div>
-            
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <Calendar className="h-4 w-4" />
-                <span>
-                  {new Date(tripData.startDate).toLocaleDateString()} - {new Date(tripData.endDate).toLocaleDateString()}
+            {tripData?.costs?.total > 0 && (
+              <div className="bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange rounded-xl px-6 py-3 text-white">
+                <p className="text-white/80 text-xs font-medium">Total Estimated Cost</p>
+                <p className="text-2xl font-bold">₹{tripData.costs.total.toLocaleString()}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Cost Breakdown */}
+        {tripData?.costs && (
+          <Card className="mb-6">
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-rs-deep-brown mb-4 flex items-center gap-2">
+                <IndianRupee className="h-5 w-5 text-rs-terracotta" /> Cost Breakdown
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {(['transport', 'accommodation', 'food', 'attractions'] as const).map(key => (
+                  <div key={key} className="bg-rs-sand/50 rounded-xl p-4">
+                    <p className="text-xs text-rs-desert-brown capitalize mb-1">{key}</p>
+                    <p className="text-xl font-bold text-rs-deep-brown">₹{(tripData.costs[key] || 0).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Transport Options */}
+        <Card className="mb-6">
+          <div className="p-6">
+            <h2 className="text-lg font-bold text-rs-deep-brown mb-4 flex items-center gap-2">
+              <Car className="h-5 w-5 text-rs-terracotta" /> Transport Options
+            </h2>
+
+            {tripData.transportOptions && tripData.transportOptions.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="h-4 w-4 text-rs-neon-teal" />
+                  <span className="text-sm font-semibold text-rs-deep-brown">Recommended Options</span>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {tripData.transportOptions
+                    .filter((opt: any) => opt.isRecommended)
+                    .map((option: any, i: number) => {
+                      const isSelected = selectedTransport?.provider === option.provider && selectedTransport?.mode === option.mode;
+                      return (
+                        <div key={i} className={`border-2 rounded-xl p-5 transition-all cursor-pointer ${isSelected ? 'border-rs-terracotta bg-rs-terracotta/5 shadow-md ring-1 ring-rs-terracotta' : 'border-rs-sand-dark hover:border-rs-terracotta/50'
+                          }`} onClick={() => handleSelectTransport(option)}>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2.5 rounded-xl bg-gradient-to-br ${modeGradient(option.mode)}`}>
+                                {getTransportIcon(option.mode)}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-rs-deep-brown capitalize">{option.mode}</h4>
+                                <p className="text-xs text-rs-desert-brown">{option.provider}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xl font-bold text-rs-deep-brown">₹{option.price?.toLocaleString()}</p>
+                              <p className="text-[10px] text-rs-desert-brown">per person</p>
+                            </div>
+                          </div>
+                          {option.recommendationReason && (
+                            <p className="text-[10px] font-medium text-rs-terracotta-dark bg-rs-terracotta/5 px-2 py-1 rounded mb-3">
+                              {option.recommendationReason}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-4 text-xs text-rs-desert-brown mb-3">
+                            <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {option.duration}h</span>
+                            {option.carbonFootprint && <span className="flex items-center gap-1"><Leaf className="h-3.5 w-3.5 text-rs-neon-teal" /> {option.carbonFootprint}kg CO₂</span>}
+                          </div>
+                          <Button
+                            variant={isSelected ? "primary" : "outline"}
+                            className={`w-full text-sm ${isSelected ? 'bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange' : 'border-rs-terracotta text-rs-terracotta'}`}
+                          >
+                            {isSelected ? 'Selected' : 'Select This Option'}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {tripData.transportOptions.some((opt: any) => !opt.isRecommended) && (
+                  <div className="mt-8">
+                    <h3 className="text-sm font-semibold text-rs-desert-brown mb-4">Other Options</h3>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {tripData.transportOptions
+                        .filter((opt: any) => !opt.isRecommended)
+                        .map((option: any, i: number) => {
+                          const isSelected = selectedTransport?.provider === option.provider && selectedTransport?.mode === option.mode;
+                          return (
+                            <div key={i} className={`border rounded-xl p-4 transition-all cursor-pointer ${isSelected ? 'border-rs-terracotta bg-rs-terracotta/5 ring-1 ring-rs-terracotta' : 'border-rs-sand-dark hover:border-rs-terracotta/50 bg-white/50'
+                              }`} onClick={() => handleSelectTransport(option)}>
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className={`p-1.5 rounded-lg bg-gradient-to-br ${modeGradient(option.mode)}`}>
+                                    {getTransportIcon(option.mode)}
+                                  </div>
+                                  <div className="font-bold text-rs-deep-brown text-sm">{option.mode}</div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-rs-deep-brown">₹{option.price}</p>
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-rs-desert-brown mb-2">{option.provider}</p>
+                              <div className="flex items-center justify-between text-[10px] text-rs-desert-brown">
+                                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {option.duration}h</span>
+                                <button className={`font-semibold ${isSelected ? 'text-rs-deep-brown' : 'text-rs-terracotta'}`}>
+                                  {isSelected ? 'Selected' : 'Select'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="bg-rs-sand/50 rounded-xl p-8 text-center">
+                <Navigation className="h-8 w-8 text-rs-desert-brown mx-auto mb-2" />
+                <p className="text-rs-desert-brown">No transport options available for this route.</p>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Tourist Spots */}
+        {(tripData.allTouristSpots || tripData.touristSpots)?.length > 0 && (
+          <Card className="mb-6">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-rs-deep-brown flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-rs-sunset-pink" />
+                  Popular Spots in {tripData.destination}
+                </h2>
+                <span className="text-xs text-rs-desert-brown font-medium bg-rs-sand px-3 py-1 rounded-full border border-rs-sand-dark">
+                  Sorted by Popularity
                 </span>
               </div>
-              
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <MapPin className="h-4 w-4" />
-                <span>{days} days</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <Users className="h-4 w-4" />
-                <span>{tripData.travelers} traveler{tripData.travelers > 1 ? 's' : ''}</span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <DollarSign className="h-4 w-4" />
-                <span className="capitalize">{tripData.budgetType}</span>
-              </div>
-              
-            </div>
-            {/* Debug Info - Remove in production */}
-        <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg text-xs">
-          <p className="font-bold mb-2">Debug Info:</p>
-          <p>Transport Options: {tripData.transportOptions?.length || 0}</p>
-          <p>Tourist Spots: {tripData.touristSpots?.length || 0}</p>
-          <p>Itinerary Days: {tripData.itinerary?.length || 0}</p>
-          <p>Selected Spots: {selectedSpots.length}</p>
-        </div>
-          </div>
-        </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...(tripData.allTouristSpots || tripData.touristSpots || [])]
+                  .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+                  .map((spot: any, i: number) => {
+                    const isSelected = selectedSpots.includes(spot.name);
+                    const isHot = spot.popularity >= 80;
+                    return (
+                      <div key={i} className={`group relative border rounded-xl p-4 transition-all cursor-pointer ${isSelected ? 'border-rs-terracotta bg-rs-terracotta/5 ring-1 ring-rs-terracotta' : 'border-rs-sand-dark bg-white hover:border-rs-terracotta/50 hover:shadow-md'
+                        }`} onClick={() => handleSelectSpot(spot)}>
 
-        {/* Cost Summary */}
-        {tripData.costs && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg mb-8">
-            <div className="flex items-center gap-2 mb-6">
-              <Wallet className="h-5 w-5 text-blue-600" />
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Cost Breakdown
+                        {isHot && (
+                          <div className="absolute -top-2 -right-2 bg-rs-sunset-orange text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                            <Sparkles className="h-2.5 w-2.5" /> HOT SPOT
+                          </div>
+                        )}
+
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-bold text-rs-deep-brown group-hover:text-rs-terracotta transition-colors">{spot.name}</h3>
+                          <div className="flex items-center gap-2">
+                            {isSelected && <CheckCircle className="h-4 w-4 text-rs-terracotta" />}
+                            <div className="flex items-center gap-0.5 bg-rs-neon-amber/20 px-1.5 py-0.5 rounded-full">
+                              <Star className="h-3 w-3 text-rs-neon-amber fill-rs-neon-amber" />
+                              <span className="text-xs font-semibold text-rs-deep-brown">{spot.rating}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-rs-desert-brown mb-3 line-clamp-2">{spot.description}</p>
+
+                        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-[10px] mt-auto">
+                          <div className="flex flex-col">
+                            <span className="text-rs-desert-brown uppercase tracking-wider text-[8px] font-bold">Category</span>
+                            <span className="font-medium text-rs-deep-brown">{spot.category}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-rs-desert-brown uppercase tracking-wider text-[8px] font-bold">Popularity</span>
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex-1 h-1 bg-rs-sand-dark rounded-full overflow-hidden">
+                                <div className="h-full bg-rs-terracotta rounded-full" style={{ width: `${spot.popularity || 50}%` }} />
+                              </div>
+                              <span className="font-bold text-rs-deep-brown">{Math.round(spot.popularity || 50)}%</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-rs-desert-brown uppercase tracking-wider text-[8px] font-bold">Visit Time</span>
+                            <span className="font-medium text-rs-deep-brown">{spot.estimatedTime} hours</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-rs-desert-brown uppercase tracking-wider text-[8px] font-bold">Entry Fee</span>
+                            <span className="font-medium text-rs-deep-brown">{spot.entryFee === 0 ? 'Free Entry' : `₹${spot.entryFee}`}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Journey Plan (Dynamic) */}
+        {(selectedTransport || selectedSpots.length > 0) && (
+          <Card className="mb-6 bg-white border-2 border-rs-terracotta/30">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-rs-deep-brown mb-6 flex items-center gap-2">
+                <Navigation className="h-6 w-6 text-rs-terracotta" /> Your Journey Plan
               </h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                <Plane className="h-5 w-5 text-blue-600 mb-2" />
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Transport</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">₹{tripData.costs.transport}</p>
+
+              <div className="space-y-6">
+                {/* Selected Transport */}
+                {selectedTransport && (
+                  <div className="flex items-center gap-4 p-4 bg-rs-sand/30 rounded-xl border border-rs-sand-dark">
+                    <div className={`p-3 rounded-xl bg-gradient-to-br ${modeGradient(selectedTransport.mode)}`}>
+                      {getTransportIcon(selectedTransport.mode)}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-rs-terracotta uppercase">Transportation</p>
+                      <h4 className="font-bold text-rs-deep-brown">{selectedTransport.provider}</h4>
+                      <p className="text-xs text-rs-desert-brown">{selectedTransport.duration}h travel time</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-rs-deep-brown">₹{selectedTransport.price?.toLocaleString()}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected Spots as Timeline */}
+                {selectedSpots.length > 0 && (
+                  <div className="space-y-0 relative pl-4 border-l-2 border-rs-terracotta/20 ml-4">
+                    {selectedSpots.map((name, i) => {
+                      const spot = (tripData.allTouristSpots || tripData.touristSpots || []).find((s: any) => s.name === name);
+                      return (
+                        <div key={i} className="relative pb-6 last:pb-0">
+                          <div className="absolute -left-[25px] top-1 w-4 h-4 rounded-full bg-rs-terracotta border-4 border-white shadow-sm" />
+                          <div className="bg-white p-3 rounded-lg border border-rs-sand-dark ml-2">
+                            <h4 className="font-bold text-rs-deep-brown text-sm">{name}</h4>
+                            <p className="text-[10px] text-rs-desert-brown">{spot?.category} · {spot?.estimatedTime}h visit</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-                <Hotel className="h-5 w-5 text-purple-600 mb-2" />
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Accommodation</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">₹{tripData.costs.accommodation}</p>
-              </div>
-              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-                <Utensils className="h-5 w-5 text-orange-600 mb-2" />
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Food</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">₹{tripData.costs.food}</p>
-              </div>
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-                <Landmark className="h-5 w-5 text-green-600 mb-2" />
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Attractions</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">₹{tripData.costs.attractions}</p>
-              </div>
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-4 shadow-lg">
-                <Sparkles className="h-5 w-5 text-white mb-2" />
-                <p className="text-xs text-white/80 mb-1">TOTAL</p>
-                <p className="text-2xl font-bold text-white">₹{tripData.costs.total}</p>
+
+              <div className="mt-8 pt-6 border-t border-rs-sand-dark flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-rs-desert-brown">Plan Summary</p>
+                  <p className="text-sm font-bold text-rs-deep-brown">
+                    {selectedTransport ? '1 Transport' : 'No transport selected'} · {selectedSpots.length} Spots
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-rs-desert-brown">Updated Total</p>
+                  <p className="text-2xl font-bold text-rs-terracotta">₹{tripData.costs.total.toLocaleString()}</p>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Transport Section with Filters */}
-        {tripData.transportOptions && tripData.transportOptions.length > 0 && (
-          <div className="mb-8">
-            <div className="grid lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-1">
-                <TransportFilter onFilterChange={handleFilterChange} />
-              </div>
-              <div className="lg:col-span-3">
-                <TransportSelection
-                  options={filteredTransport}
-                  selectedTransport={tripData.selectedTransport || null}
-                  onSelect={handleSelectTransport}
-                  onDeselect={handleDeselectTransport}
-                  travelers={tripData.travelers}
-                />
+        {/* Existing Static Itinerary if available */}
+        {tripData.itinerary?.length > 0 && (
+          <Card className="mb-6">
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-rs-deep-brown mb-4 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-rs-sunset-orange" /> {tripData.duration}-Day Itinerary
+              </h2>
+              <div className="space-y-6">
+                {tripData.itinerary.map((day: any[], i: number) => (
+                  <div key={i} className="border-l-4 border-rs-terracotta pl-5">
+                    <h3 className="text-base font-bold text-rs-deep-brown mb-3">Day {i + 1}</h3>
+                    <div className="space-y-2.5">
+                      {day.map((spot: any, j: number) => (
+                        <div key={j} className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-rs-terracotta to-rs-sunset-orange text-white rounded-full flex items-center justify-center text-xs font-bold">{j + 1}</div>
+                          <div>
+                            <p className="font-semibold text-rs-deep-brown text-sm">{spot.name}</p>
+                            <p className="text-xs text-rs-desert-brown">{spot.estimatedTime}h · {spot.category} · {spot.entryFee === 0 ? 'Free' : `₹${spot.entryFee}`}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
-        {/* Tourist Spots Selection */}
-        {tripData.allTouristSpots?.length > 0 && (
-  <TouristSpotSelection
-    spots={tripData.allTouristSpots}
-    selectedSpots={selectedSpots}
-    onToggleSpot={handleToggleSpot}
-    maxDays={days}
-  />
-)}
-
-        {/* Itinerary Display */}
-        {tripData.itinerary && tripData.itinerary.length > 0 && (
-          <div>
-            <ItineraryDisplay
-              itinerary={tripData.itinerary}
-              onSaveTrip={handleSaveTrip}
-              isSaving={saving}
-            />
-          </div>
-        )}
-
-        
+        {/* Actions */}
+        <div className="flex gap-3">
+          <Button variant="primary" className="flex-1 bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange">
+            <CheckCircle className="mr-2 h-4 w-4" /> Confirm & Save Trip
+          </Button>
+          <Button variant="outline" className="flex-1 border-rs-terracotta text-rs-terracotta hover:bg-rs-terracotta/10" onClick={() => router.push('/dashboard')}>
+            Back to Dashboard
+          </Button>
+        </div>
       </div>
     </div>
   );

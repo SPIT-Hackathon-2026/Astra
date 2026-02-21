@@ -68,22 +68,22 @@ export default function TouristSpotSelection({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">
+        <h2 className="text-2xl font-bold text-[var(--rs-deep-brown)]">
           Select Tourist Spots
         </h2>
-        <p className="text-gray-600 mt-1">
+        <p className="text-[var(--rs-desert-brown)] mt-1">
           Choose places you want to visit. We'll create a smart itinerary for you.
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-blue-50 rounded-lg p-4">
-          <p className="text-blue-600 text-sm font-medium">Selected</p>
+        <div className="bg-[var(--rs-sand)] rounded-lg p-4">
+          <p className="text-[var(--rs-terracotta)] text-sm font-medium">Selected</p>
           <p className="text-2xl font-bold text-blue-900">
             {selectedSpots.length}
           </p>
-          <p className="text-xs text-blue-700 mt-1">spots</p>
+          <p className="text-xs text-[var(--rs-terracotta-dark)] mt-1">spots</p>
         </div>
         <div className="bg-green-50 rounded-lg p-4">
           <p className="text-green-600 text-sm font-medium">Total Time</p>
@@ -119,8 +119,8 @@ export default function TouristSpotSelection({
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
               filter === 'all'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-[var(--rs-terracotta)] text-white'
+                : 'bg-[var(--rs-sand)] text-[var(--rs-deep-brown)] hover:bg-[var(--rs-sand-dark)]'
             }`}
           >
             All Spots ({spots.length})
@@ -130,7 +130,7 @@ export default function TouristSpotSelection({
             className={`px-4 py-2 rounded-lg font-medium text-sm transition flex items-center gap-1 ${
               filter === 'popular'
                 ? 'bg-yellow-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-[var(--rs-sand)] text-[var(--rs-deep-brown)] hover:bg-[var(--rs-sand-dark)]'
             }`}
           >
             <Star className="w-4 h-4" />
@@ -141,7 +141,7 @@ export default function TouristSpotSelection({
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 border border-[var(--rs-sand-dark)] rounded-lg focus:ring-2 focus:ring-[var(--rs-terracotta)]"
         >
           {categories.map(cat => (
             <option key={cat} value={cat}>
@@ -165,8 +165,8 @@ export default function TouristSpotSelection({
 
       {/* No Results */}
       {filteredSpots.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-600 text-lg">No spots found with current filters.</p>
+        <div className="text-center py-12 bg-[var(--rs-sand-light)] rounded-lg">
+          <p className="text-[var(--rs-desert-brown)] text-lg">No spots found with current filters.</p>
         </div>
       )}
     </div>
@@ -187,8 +187,8 @@ function SpotCard({
       onClick={onToggle}
       className={`relative bg-white rounded-xl border-2 overflow-hidden cursor-pointer transition hover:shadow-lg ${
         isSelected
-          ? 'border-blue-500 ring-4 ring-blue-100'
-          : 'border-gray-200 hover:border-blue-300'
+          ? 'border-[var(--rs-terracotta)] ring-4 ring-blue-100'
+          : 'border-[var(--rs-sand-dark)] hover:border-[var(--rs-terracotta-light)]'
       }`}
     >
       {/* Popular Badge */}
@@ -201,7 +201,7 @@ function SpotCard({
 
       {/* Selected Badge */}
       {isSelected && (
-        <div className="absolute top-3 right-3 z-10 bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">
+        <div className="absolute top-3 right-3 z-10 bg-[var(--rs-terracotta)] text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">
           ✓
         </div>
       )}
@@ -221,51 +221,51 @@ function SpotCard({
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-1">
+        <h3 className="font-bold text-[var(--rs-deep-brown)] text-lg mb-1 line-clamp-1">
           {spot.name}
         </h3>
 
         <div className="flex items-center gap-2 mb-2">
           <div className="flex items-center gap-1">
             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-            <span className="text-sm font-semibold text-gray-700">
+            <span className="text-sm font-semibold text-[var(--rs-deep-brown)]">
               {spot.rating.toFixed(1)}
             </span>
           </div>
-          <span className="text-xs text-gray-500">•</span>
-          <span className="text-xs text-gray-600 capitalize">
+          <span className="text-xs text-[var(--rs-desert-brown)]">•</span>
+          <span className="text-xs text-[var(--rs-desert-brown)] capitalize">
             {spot.category.replace(/_/g, ' ')}
           </span>
         </div>
 
-        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+        <p className="text-sm text-[var(--rs-desert-brown)] line-clamp-2 mb-3">
           {spot.description}
         </p>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-1 text-gray-600">
+            <span className="flex items-center gap-1 text-[var(--rs-desert-brown)]">
               <Clock className="w-4 h-4" />
               Time needed
             </span>
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-[var(--rs-deep-brown)]">
               {spot.estimatedTime}h
             </span>
           </div>
 
           <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-1 text-gray-600">
+            <span className="flex items-center gap-1 text-[var(--rs-desert-brown)]">
               <IndianRupee className="w-4 h-4" />
               Entry fee
             </span>
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-[var(--rs-deep-brown)]">
               {spot.entryFee === 0 ? 'Free' : `₹${spot.entryFee}`}
             </span>
           </div>
 
-          <div className="pt-2 border-t border-gray-200">
-            <p className="text-xs text-gray-500">Best time:</p>
-            <p className="text-sm font-medium text-gray-700">
+          <div className="pt-2 border-t border-[var(--rs-sand-dark)]">
+            <p className="text-xs text-[var(--rs-desert-brown)]">Best time:</p>
+            <p className="text-sm font-medium text-[var(--rs-deep-brown)]">
               {spot.bestTimeToVisit}
             </p>
           </div>
@@ -273,8 +273,8 @@ function SpotCard({
 
         {/* Address */}
         {spot.address && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-xs text-gray-500 line-clamp-1">{spot.address}</p>
+          <div className="mt-3 pt-3 border-t border-[var(--rs-sand-dark)]">
+            <p className="text-xs text-[var(--rs-desert-brown)] line-clamp-1">{spot.address}</p>
           </div>
         )}
       </div>
@@ -284,8 +284,8 @@ function SpotCard({
         <button
           className={`w-full py-2 rounded-lg font-medium text-sm transition ${
             isSelected
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-[var(--rs-terracotta)] text-white'
+              : 'bg-[var(--rs-sand)] text-[var(--rs-deep-brown)] hover:bg-[var(--rs-sand-dark)]'
           }`}
         >
           {isSelected ? '✓ Selected' : 'Select Spot'}

@@ -21,7 +21,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
@@ -41,7 +41,7 @@ function calculateArrivalTime(departureTime: string, durationHours: number): str
 export async function getCityCoordinates(city: string): Promise<{ lat: number; lon: number; displayName: string } | null> {
   try {
     console.log(`🔍 Getting coordinates for: ${city}`);
-    
+
     const response = await axios.get(
       `https://nominatim.openstreetmap.org/search`,
       {
@@ -66,7 +66,7 @@ export async function getCityCoordinates(city: string): Promise<{ lat: number; l
         displayName: result.display_name
       };
     }
-    
+
     console.log(`❌ City not found: ${city}`);
     return null;
   } catch (error) {
@@ -75,28 +75,56 @@ export async function getCityCoordinates(city: string): Promise<{ lat: number; l
   }
 }
 
-// Get REAL flight data from AviationStack API
-async function getRealFlightData(
-  source: string,
-  destination: string,
-  date: string
-): Promise<TransportOption[]> {
+// Get actual route and duration using OSRM (FREE) or OpenRouteService (if key available)
+export async function getRouteDetails(
+  sourceLat: number,
+  sourceLon: number,
+  destLat: number,
+  destLon: number,
+  profile: 'car' | 'bike' = 'car'
+): Promise<{ distance: number; duration: number; route: string } | null> {
+  // Try OpenRouteService if key is available
+  if (process.env.OPENROUTE_API_KEY) {
+    try {
+      console.log(`🗺️ Getting route via OpenRouteService...`);
+      const response = await axios.get(
+        `https://api.openrouteservice.org/v2/directions/driving-car`,
+        {
+          params: {
+            start: `${sourceLon},${sourceLat}`,
+            end: `${destLon},${destLat}`
+          },
+          headers: {
+            'Authorization': process.env.OPENROUTE_API_KEY
+          }
+        }
+      );
+
+      if (response.data && response.data.features && response.data.features.length > 0) {
+        const route = response.data.features[0];
+        return {
+          distance: route.properties.segments[0].distance / 1000,
+          duration: route.properties.segments[0].duration / 3600,
+          route: JSON.stringify(route.geometry)
+        };
+      }
+    } catch (err) {
+      console.error('OpenRouteService error, falling back to OSRM:', err);
+    }
+  }
+
   try {
-    console.log(`✈️ Fetching real flight data from AviationStack...`);
+    console.log(`🗺️ Getting route via OSRM...`);
 
-    // Map cities to airport codes
-    const airportCodes: { [key: string]: string } = {
-      'mumbai': 'BOM', 'pune': 'PNQ', 'delhi': 'DEL', 'bangalore': 'BLR',
-      'chennai': 'MAA', 'kolkata': 'CCU', 'hyderabad': 'HYD', 'ahmedabad': 'AMD',
-      'goa': 'GOI', 'kochi': 'COK', 'jaipur': 'JAI', 'lucknow': 'LKO',
-      'chandigarh': 'IXC', 'bhopal': 'BHO', 'indore': 'IDR'
-    };
-
-    const sourceCode = Object.keys(airportCodes).find(key => 
-      source.toLowerCase().includes(key)
-    );
-    const destCode = Object.keys(airportCodes).find(key => 
-      destination.toLowerCase().includes(key)
+    const response = await axios.get(
+      `https://router.project-osrm.org/route/v1/${profile}/${sourceLon},${sourceLat};${destLon},${destLat}`,
+      {
+        params: {
+          overview: 'simplified',
+          geometries: 'geojson',
+          steps: false
+        }
+      }
     );
 
     if (!sourceCode || !destCode) {
@@ -104,35 +132,123 @@ async function getRealFlightData(
       return [];
     }
 
-    const response = await axios.get('http://api.aviationstack.com/v1/flights', {
-      params: {
-        access_key: process.env.AVIATIONSTACK_API_KEY,
-        dep_iata: airportCodes[sourceCode],
-        arr_iata: airportCodes[destCode],
-        flight_date: date,
-      },
-    });
+    return null;
+  } catch (error) {
+    console.error('Error getting route:', error);
+    return null;
+  }
+}
 
-    if (response.data && response.data.data && response.data.data.length > 0) {
-      console.log(`✅ Found ${response.data.data.length} real flights`);
-      
-      return response.data.data.map((flight: any) => {
-        const deptTime = new Date(flight.departure.scheduled);
-        const arrTime = new Date(flight.arrival.scheduled);
-        const duration = (arrTime.getTime() - deptTime.getTime()) / (1000 * 60 * 60);
+// Get train options using Indian Railway Data
+export async function getTrainOptions(
+  sourceCity: string,
+  destCity: string,
+  distance: number,
+  duration: number
+): Promise<TransportOption[]> {
+  const trains: TransportOption[] = [];
 
-        return {
-          mode: 'flight' as const,
-          provider: flight.airline.name || 'Unknown Airline',
-          price: 3500, // Estimate - AviationStack doesn't provide prices
-          duration: duration,
-          departureTime: deptTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }),
-          arrivalTime: arrTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }),
-          stops: 0,
-          carbonFootprint: Math.round(duration * 600 * 0.158),
-          amenities: ['In-flight Entertainment', 'Meal', 'Baggage allowance'],
-        };
+  // Major train stations mapping
+  const stationCodes: { [key: string]: string } = {
+    'mumbai': 'CSMT/BCT',
+    'pune': 'PUNE',
+    'delhi': 'NDLS',
+    'bangalore': 'SBC',
+    'chennai': 'MAS',
+    'kolkata': 'HWH',
+    'hyderabad': 'SC',
+    'ahmedabad': 'ADI',
+    'jaipur': 'JP',
+    'lucknow': 'LKO',
+    'goa': 'MAO',
+    'kochi': 'ERS',
+    'chandigarh': 'CDG',
+    'bhopal': 'BPL',
+    'indore': 'INDB',
+    'patna': 'PNBE',
+    'nagpur': 'NGP',
+    'surat': 'ST',
+    'vadodara': 'BRC',
+    'agra': 'AGC'
+  };
+
+  const sourceStation = Object.keys(stationCodes).find(key =>
+    sourceCity.toLowerCase().includes(key)
+  );
+  const destStation = Object.keys(stationCodes).find(key =>
+    destCity.toLowerCase().includes(key)
+  );
+
+  if (!sourceStation || !destStation) {
+    console.log('⚠️ Train not available for this route');
+    return [];
+  }
+
+  // If RapidAPI key is available, try to get real trains
+  if (process.env.RAPIDAPI_KEY) {
+    console.log(`🚆 Querying RapidAPI for trains: ${stationCodes[sourceStation]} → ${stationCodes[destStation]}...`);
+    try {
+      const response = await axios.get(`https://irctc1.p.rapidapi.com/api/v3/trainBetweenStations`, {
+        params: {
+          fromStationCode: stationCodes[sourceStation],
+          toStationCode: stationCodes[destStation],
+          dateOfJourney: new Date().toISOString().split('T')[0] // Default to today
+        },
+        headers: {
+          'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+          'X-RapidAPI-Host': 'irctc1.p.rapidapi.com'
+        },
+        timeout: 10000
       });
+
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        console.log(`✅ Found ${response.data.data.length} real trains from RapidAPI`);
+        return response.data.data.slice(0, 5).map((train: any) => {
+          const basePrice = distance * 0.6; // Price often not in this specific API call
+          return {
+            mode: 'train',
+            provider: `${train.train_name} (${train.train_number})`,
+            price: Math.round(basePrice + 100),
+            duration: parseFloat((parseInt(train.duration || '0') / 60).toFixed(1)) || (distance / 60),
+            departureTime: train.from_std || '00:00',
+            arrivalTime: train.to_std || '00:00',
+            stops: train.halt_count || Math.floor(distance / 100),
+            carbonFootprint: Math.round(distance * 0.041),
+            amenities: ['AC Sleeper', 'Pantry', 'Charging points', 'Real-time schedule'],
+            distance: Math.round(distance)
+          };
+        });
+      }
+    } catch (err) {
+      console.error('RapidAPI train error, falling back to heuristic:', err);
+    }
+  }
+
+  // Calculate realistic train timings based on distance
+  const trainTypes = [
+    {
+      name: 'Shatabdi/Vande Bharat Express',
+      speed: 85,
+      pricePerKm: 0.8,
+      amenities: ['AC Chair Car', 'Meals included', 'WiFi', 'Premium comfort']
+    },
+    {
+      name: 'Rajdhani Express',
+      speed: 75,
+      pricePerKm: 1.2,
+      amenities: ['AC Sleeper', 'Meals included', 'Bedding', 'Premium service']
+    },
+    {
+      name: 'Duronto/Superfast Express',
+      speed: 65,
+      pricePerKm: 0.6,
+      amenities: ['AC 3-Tier', 'Pantry service', 'Charging points', 'Fast travel']
+    },
+    {
+      name: 'Mail/Express',
+      speed: 55,
+      pricePerKm: 0.4,
+      amenities: ['Sleeper/AC', 'Food available', 'Multiple stops', 'Budget friendly']
     }
 
     return [];
@@ -163,36 +279,93 @@ async function getRealBusData(
       },
     });
 
-    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-      console.log(`✅ Found ${response.data.length} real buses`);
-      
-      return response.data.map((bus: any) => ({
-        mode: 'bus' as const,
-        provider: bus.operator || bus.travels || 'Unknown',
-        price: parseFloat(bus.fare || bus.price || '500'),
-        duration: parseFloat(bus.duration || '8'),
-        departureTime: bus.departure_time || bus.dept_time || '08:00',
-        arrivalTime: bus.arrival_time || bus.arr_time || '16:00',
-        stops: parseInt(bus.stops || '3'),
-        carbonFootprint: Math.round((bus.distance || 300) * 0.068),
-        amenities: bus.amenities || ['AC', 'Charging Points'],
-      }));
-    }
+  console.log(`🚆 Found ${trains.length} heuristic train options`);
+  return trains;
+}
 
     return [];
-  } catch (error: any) {
-    console.error('❌ RapidAPI Bus Error:', error.message);
+  }
+
+  const flights: TransportOption[] = [];
+
+  // Major airport codes
+  const airportCodes: { [key: string]: string } = {
+    'mumbai': 'BOM',
+    'pune': 'PNQ',
+    'delhi': 'DEL',
+    'bangalore': 'BLR',
+    'chennai': 'MAA',
+    'kolkata': 'CCU',
+    'hyderabad': 'HYD',
+    'ahmedabad': 'AMD',
+    'goa': 'GOI',
+    'kochi': 'COK',
+    'jaipur': 'JAI',
+    'lucknow': 'LKO',
+    'chandigarh': 'IXC',
+    'bhopal': 'BHO',
+    'indore': 'IDR'
+  };
+
+  const sourceCode = Object.keys(airportCodes).find(key =>
+    sourceCity.toLowerCase().includes(key)
+  );
+  const destCode = Object.keys(airportCodes).find(key =>
+    destCity.toLowerCase().includes(key)
+  );
+
+  if (!sourceCode || !destCode) {
+    console.log('⚠️ No major airport found for this route');
     return [];
   }
 }
 
-// Get mock train data (no free real-time train API available)
-function getMockTrainData(distance: number): TransportOption[] {
-  const trainTypes = [
-    { name: 'Shat', speed: 85, pricePerKm: 0.8 },
-    { name: 'Raj', speed: 75, pricePerKm: 1.2 },
-    { name: 'Sup', speed: 65, pricePerKm: 0.6 },
-    { name: 'Mail', speed: 55, pricePerKm: 0.4 },
+  // If Aviationstack API key is available, try to get real flights
+  if (process.env.AVIATIONSTACK_API_KEY) {
+    console.log(`✈️ Querying Aviationstack for ${sourceCode} → ${destCode}...`);
+    try {
+      const response = await axios.get(`http://api.aviationstack.com/v1/flights`, {
+        params: {
+          access_key: process.env.AVIATIONSTACK_API_KEY,
+          dep_iata: airportCodes[sourceCode],
+          arr_iata: airportCodes[destCode],
+          limit: 5
+        },
+        timeout: 10000
+      });
+
+      if (response.data && response.data.data && response.data.data.length > 0) {
+        console.log(`✅ Found ${response.data.data.length} real flights from Aviationstack`);
+        return response.data.data.map((flight: any) => {
+          const depTime = new Date(flight.departure.scheduled);
+          const arrTime = new Date(flight.arrival.scheduled);
+          const durationHrs = (arrTime.getTime() - depTime.getTime()) / (1000 * 60 * 60);
+
+          return {
+            mode: 'flight',
+            provider: `${flight.airline?.name || 'Unknown Airline'} - ${flight.flight?.iata || 'Flight'}`,
+            price: Math.round(3500 + (distance * 2.5)), // Aviationstack doesn't provide price in free tier
+            duration: parseFloat(durationHrs.toFixed(1)) || 2,
+            departureTime: depTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            arrivalTime: arrTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            stops: 0,
+            carbonFootprint: Math.round(distance * 0.158),
+            amenities: ['Real-time flight', 'Baggage allowance', 'In-flight service'],
+            distance: Math.round(distance)
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Aviationstack error, falling back to heuristic flights:', err);
+    }
+  }
+
+  const airlines = [
+    { name: 'IndiGo', priceMultiplier: 1.0 },
+    { name: 'Air India', priceMultiplier: 1.15 },
+    { name: 'SpiceJet', priceMultiplier: 0.9 },
+    { name: 'Vistara', priceMultiplier: 1.3 },
+    { name: 'GoAir', priceMultiplier: 0.85 }
   ];
 
   return trainTypes.map((train, idx) => {
@@ -212,6 +385,9 @@ function getMockTrainData(distance: number): TransportOption[] {
       amenities: ['AC', 'Food Service', 'Charging Points'],
     };
   });
+
+  console.log(`✈️ Found ${flights.length} heuristic flight options`);
+  return flights;
 }
 
 // Get mock bus data (fallback)
@@ -241,9 +417,54 @@ function getMockBusData(distance: number): TransportOption[] {
   });
 }
 
-// Get mock flight data (fallback)
-function getMockFlightData(distance: number): TransportOption[] {
-  if (distance < 200) return [];
+// Get metro options (only intra-city)
+export async function getMetroOptions(
+  sourceCity: string,
+  destCity: string,
+  distance: number
+): Promise<TransportOption[]> {
+  const metroCities = [
+    'delhi', 'mumbai', 'bangalore', 'kolkata', 'chennai',
+    'hyderabad', 'pune', 'jaipur', 'kochi', 'lucknow',
+    'noida', 'gurgaon', 'gurugram', 'nagpur', 'ahmedabad', 'kanpur'
+  ];
+
+  // Check if same city and has metro
+  const sourceNorm = sourceCity.toLowerCase();
+  const destNorm = destCity.toLowerCase();
+
+  const isSameCity = sourceNorm === destNorm ||
+    (sourceNorm.includes('noida') && destNorm.includes('delhi')) ||
+    (sourceNorm.includes('delhi') && destNorm.includes('noida')) ||
+    (sourceNorm.includes('gurgaon') && destNorm.includes('delhi')) ||
+    (sourceNorm.includes('gurugram') && destNorm.includes('delhi'));
+
+  const hasMetro = metroCities.some(city =>
+    sourceNorm.includes(city) || destNorm.includes(city)
+  );
+
+  if (!isSameCity || !hasMetro || distance > 50) {
+    return [];
+  }
+
+  const metroDuration = (distance / 35) + 0.5; // 35 km/h + stops
+  const price = Math.min(10 + (distance * 2), 60); // Max ₹60
+
+  console.log(`🚇 Found metro option`);
+
+  return [{
+    mode: 'metro',
+    provider: `${sourceCity} Metro Rail`,
+    price: Math.round(price),
+    duration: parseFloat(metroDuration.toFixed(2)),
+    departureTime: 'Every 5-10 mins (6 AM - 11 PM)',
+    arrivalTime: `${Math.round(metroDuration * 60)} minutes`,
+    stops: Math.floor(distance / 1.5),
+    carbonFootprint: Math.round(distance * 0.02),
+    amenities: ['AC coaches', 'Frequent service', 'Safe & clean', 'Disabled friendly'],
+    distance: Math.round(distance)
+  }];
+}
 
   const airlines = [
     { name: 'IndiGo', multiplier: 1.0 },
@@ -309,24 +530,26 @@ export async function getAllTransportOptions(
       allOptions.push(...getMockFlightData(distance));
     }
 
-    // 2. Try to get REAL bus data
-    const realBuses = await getRealBusData(source, destination, date);
-    if (realBuses.length > 0) {
-      console.log(`✅ Using ${realBuses.length} real buses`);
-      allOptions.push(...realBuses);
-    } else {
-      console.log('⚠️ No real buses, using mock data');
-      allOptions.push(...getMockBusData(distance));
-    }
+    // Step 3: Fetch all transport options in parallel
+    console.log(`\n📊 Fetching transport modes...`);
 
-    // 3. Always use mock trains (no free API available)
-    console.log('🚆 Using mock train data');
-    allOptions.push(...getMockTrainData(distance));
+    const [flights, trains, buses, metro, cars] = await Promise.all([
+      getFlightOptions(source, destination, distance),
+      getTrainOptions(source, destination, distance, carDuration),
+      getBusOptions(source, destination, distance, carDuration),
+      getMetroOptions(source, destination, distance),
+      getCarOptions(distance, carDuration)
+    ]);
 
-    console.log(`✅ Total transport options: ${allOptions.length}`);
-    
+    // At the end of getAllTransportOptions, before return:
+    const allOptions = [...flights, ...trains, ...buses, ...metro, ...cars];
+
     // Add recommendations
-    return addRecommendations(allOptions);
+    const optionsWithRecommendations = addRecommendations(allOptions);
+
+    console.log(`\n✅ === TOTAL: ${optionsWithRecommendations.length} transport options found ===\n`);
+
+    return optionsWithRecommendations;
 
   } catch (error: any) {
     console.error('❌ Error in getAllTransportOptions:', error.message);
@@ -376,6 +599,20 @@ export function addRecommendations(options: TransportOption[]): TransportOption[
     else if (option.mode === 'train') comfortScore = 0.7;
     else if (option.mode === 'bus') comfortScore = 0.6;
     score += comfortScore * 0.2;
+
+    // Add mode-specific reasons
+    if (option.mode === 'train' && option.stops && option.stops < 3) {
+      reasons.push('🚆 Direct route with fewer stops');
+    }
+    if (option.mode === 'flight' && option.stops === 0) {
+      reasons.push('✈️ Non-stop flight');
+    }
+    if (option.mode === 'car') {
+      reasons.push('🚗 Flexible departure time');
+    }
+    if (option.mode === 'metro') {
+      reasons.push('🚇 No traffic delays');
+    }
 
     return {
       ...option,

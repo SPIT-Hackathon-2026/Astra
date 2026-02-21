@@ -35,11 +35,11 @@ const modeIcons: Record<string, any> = {
 };
 
 const modeColors: Record<string, string> = {
-  train: 'bg-blue-100 text-blue-700',
-  flight: 'bg-purple-100 text-purple-700',
-  bus: 'bg-green-100 text-green-700',
-  car: 'bg-orange-100 text-orange-700',
-  metro: 'bg-cyan-100 text-cyan-700',
+  train: 'bg-[var(--rs-terracotta)]/10 text-[var(--rs-terracotta)]',
+  flight: 'bg-[var(--rs-sky-blue)]/10 text-[var(--rs-sky-blue)]',
+  bus: 'bg-[var(--rs-neon-teal)]/10 text-[var(--rs-neon-teal)]',
+  car: 'bg-[var(--rs-sunset-orange)]/10 text-[var(--rs-sunset-orange)]',
+  metro: 'bg-[var(--rs-sunset-purple)]/10 text-[var(--rs-sunset-purple)]',
 };
 
 export default function TransportSelection({
@@ -74,10 +74,10 @@ export default function TransportSelection({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-[var(--rs-deep-brown)]">
             Choose Your Transport
           </h2>
-          <p className="text-gray-600 mt-1">
+          <p className="text-[var(--rs-desert-brown)] mt-1">
             {selectedTransport
               ? 'Transport selected. Click to change or deselect.'
               : 'Select a transport option to update your trip cost'}
@@ -86,7 +86,7 @@ export default function TransportSelection({
         {selectedTransport && (
           <button
             onClick={onDeselect}
-            className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition"
+            className="px-4 py-2 bg-[var(--rs-dusty-red)]/10 text-[var(--rs-dusty-red)] rounded-lg font-medium hover:bg-[var(--rs-dusty-red)]/20 transition"
           >
             Deselect Transport
           </button>
@@ -96,7 +96,7 @@ export default function TransportSelection({
       {/* Recommended Options */}
       {recommendedOptions.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-[var(--rs-deep-brown)] mb-3 flex items-center gap-2">
             <span>🏆</span> Recommended for You
           </h3>
           <div className="grid md:grid-cols-2 gap-4">
@@ -119,7 +119,7 @@ export default function TransportSelection({
         <div>
           <button
             onClick={() => setShowAll(!showAll)}
-            className="w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700 transition"
+            className="w-full py-3 bg-[var(--rs-sand)] hover:bg-[var(--rs-sand-dark)] rounded-lg font-medium text-[var(--rs-deep-brown)] transition"
           >
             {showAll ? '▲ Show Less' : `▼ Show All ${options.length} Options`}
           </button>
@@ -143,8 +143,8 @@ export default function TransportSelection({
 
       {/* No Options */}
       {options.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-600 text-lg">
+        <div className="text-center py-12 bg-[var(--rs-sand)]/50 rounded-lg">
+          <p className="text-[var(--rs-desert-brown)] text-lg">
             No transport options available for this route.
           </p>
         </div>
@@ -172,24 +172,23 @@ function TransportCard({
   return (
     <div
       onClick={() => onSelect(option)}
-      className={`relative bg-white rounded-xl border-2 p-5 cursor-pointer transition hover:shadow-lg ${
-        isSelected
-          ? 'border-blue-500 ring-4 ring-blue-100'
+      className={`relative bg-white rounded-xl border-2 p-5 cursor-pointer transition hover:shadow-lg ${isSelected
+          ? 'border-[var(--rs-terracotta)] ring-4 ring-[var(--rs-terracotta)]/10'
           : option.isRecommended
-          ? 'border-yellow-400'
-          : 'border-gray-200 hover:border-blue-300'
-      }`}
+            ? 'border-[var(--rs-neon-amber)]'
+            : 'border-[var(--rs-sand-dark)] hover:border-[var(--rs-terracotta-light)]'
+        }`}
     >
       {/* Recommended Badge */}
       {option.isRecommended && !isSelected && (
-        <div className="absolute -top-3 left-4 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold">
+        <div className="absolute -top-3 left-4 bg-[var(--rs-neon-amber)] text-[var(--rs-deep-brown)] px-3 py-1 rounded-full text-xs font-bold">
           RECOMMENDED
         </div>
       )}
 
       {/* Selected Badge */}
       {isSelected && (
-        <div className="absolute -top-3 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+        <div className="absolute -top-3 right-4 bg-[var(--rs-terracotta)] text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
           <span>✓</span> SELECTED
         </div>
       )}
@@ -200,10 +199,10 @@ function TransportCard({
           <Icon className="w-6 h-6" />
         </div>
         <div className="flex-1">
-          <h4 className="font-semibold text-gray-900 text-sm leading-tight">
+          <h4 className="font-semibold text-[var(--rs-deep-brown)] text-sm leading-tight">
             {option.provider}
           </h4>
-          <p className="text-xs text-gray-500 mt-1 uppercase font-medium">
+          <p className="text-xs text-[var(--rs-desert-brown)] mt-1 uppercase font-medium">
             {option.mode}
           </p>
         </div>
@@ -263,29 +262,28 @@ function TransportCard({
 
       {/* Recommendation Reason */}
       {option.recommendationReason && (
-        <div className="mb-4 bg-blue-50 rounded-lg p-3">
-          <p className="text-xs text-blue-800 leading-relaxed">
+        <div className="mb-4 bg-[var(--rs-terracotta)]/5 rounded-lg p-3">
+          <p className="text-xs text-[var(--rs-terracotta-dark)] leading-relaxed">
             {option.recommendationReason}
           </p>
         </div>
       )}
 
       {/* Price */}
-      <div className="pt-4 border-t border-gray-200">
+      <div className="pt-4 border-t border-[var(--rs-sand-dark)]">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-xs text-gray-500">Total (Round Trip)</p>
-            <p className="text-2xl font-bold text-gray-900">₹{totalPrice}</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[var(--rs-desert-brown)]">Total (Round Trip)</p>
+            <p className="text-2xl font-bold text-[var(--rs-deep-brown)]">₹{totalPrice}</p>
+            <p className="text-xs text-[var(--rs-desert-brown)]">
               ₹{option.price} × 2 × {travelers} traveler{travelers > 1 ? 's' : ''}
             </p>
           </div>
           <button
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
-              isSelected
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition ${isSelected
+                ? 'bg-[var(--rs-terracotta)] text-white'
+                : 'bg-[var(--rs-sand)] text-[var(--rs-deep-brown)] hover:bg-[var(--rs-sand-dark)]'
+              }`}
           >
             {isSelected ? 'Selected' : 'Select'}
           </button>
