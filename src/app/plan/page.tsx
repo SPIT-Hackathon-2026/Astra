@@ -97,13 +97,13 @@ export default function PlanTripPage() {
     const active = routes[activeIdx];
 
     return (
-        <div className="min-h-screen bg-white flex flex-col">
+        <div className="min-h-screen bg-rs-sand-light flex flex-col">
             {/* ─── Top Bar ─── */}
-            <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+            <nav className="bg-white border-b border-rs-sand-dark sticky top-0 z-50">
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
                     <div className="flex items-center h-14 gap-3">
-                        <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:bg-gray-100"><ArrowLeft className="h-5 w-5 text-gray-700" /></button>
-                        <span className="text-[15px] font-medium text-gray-800 truncate">
+                        <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:bg-rs-sand"><ArrowLeft className="h-5 w-5 text-rs-deep-brown" /></button>
+                        <span className="text-[15px] font-medium text-rs-deep-brown truncate">
                             {source && destination ? `${source.split(',')[0]} → ${destination.split(',')[0]}` : 'Plan your trip'}
                         </span>
                     </div>
@@ -113,16 +113,16 @@ export default function PlanTripPage() {
             {/* ─── Main Split ─── */}
             <div className="flex-1 flex flex-col lg:flex-row">
                 {/* ═══════ LEFT PANEL ═══════ */}
-                <div className="w-full lg:w-[400px] lg:min-w-[400px] bg-white border-r border-gray-200 lg:h-[calc(100vh-56px)] lg:overflow-y-auto lg:sticky lg:top-14 flex flex-col">
+                <div className="w-full lg:w-[400px] lg:min-w-[400px] bg-white border-r border-rs-sand-dark lg:h-[calc(100vh-56px)] lg:overflow-y-auto lg:sticky lg:top-14 flex flex-col">
 
                     {/* Search inputs */}
-                    <div className="p-4 border-b border-gray-100">
+                    <div className="p-4 border-b border-rs-sand">
                         <div className="flex gap-2.5">
                             {/* Timeline dots */}
                             <div className="flex flex-col items-center pt-2.5">
-                                <div className="w-2.5 h-2.5 rounded-full border-2 border-blue-600" />
-                                <div className="w-0.5 flex-1 bg-gray-300 my-0.5 min-h-[32px]" />
-                                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                                <div className="w-2.5 h-2.5 rounded-full border-2 border-rs-terracotta" />
+                                <div className="w-0.5 flex-1 bg-rs-sand-dark my-0.5 min-h-[32px]" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-rs-dusty-red" />
                             </div>
                             <div className="flex-1 space-y-2">
                                 {/* Source */}
@@ -130,8 +130,8 @@ export default function PlanTripPage() {
                                     <div className="flex gap-1">
                                         <input type="text" placeholder="Choose starting point, or click on the map" value={source} onChange={e => onSrc(e.target.value)}
                                             onFocus={() => srcSugg.length > 0 && setShowSrc(true)} onBlur={() => setTimeout(() => setShowSrc(false), 200)}
-                                            className="flex-1 px-3 py-2 bg-gray-100 rounded-lg text-[13px] text-gray-800 placeholder:text-gray-400 focus:bg-white focus:ring-1 focus:ring-blue-500 border-0 outline-none" />
-                                        <button onClick={gps} className="p-1.5 rounded-full hover:bg-gray-100 text-blue-600"><LocateFixed className="h-4 w-4" /></button>
+                                            className="flex-1 px-3 py-2 bg-rs-sand rounded-lg text-[13px] text-rs-deep-brown placeholder:text-rs-desert-brown/60 focus:bg-white focus:ring-1 focus:ring-rs-terracotta border-0 outline-none" />
+                                        <button onClick={gps} className="p-1.5 rounded-full hover:bg-rs-sand text-rs-terracotta"><LocateFixed className="h-4 w-4" /></button>
                                     </div>
                                     {showSrc && <SuggestionList items={srcSugg} onSelect={pickSrc} />}
                                 </div>
@@ -139,21 +139,21 @@ export default function PlanTripPage() {
                                 <div className="relative">
                                     <input type="text" placeholder="Choose destination" value={destination} onChange={e => onDst(e.target.value)}
                                         onFocus={() => dstSugg.length > 0 && setShowDst(true)} onBlur={() => setTimeout(() => setShowDst(false), 200)}
-                                        className="w-full px-3 py-2 bg-gray-100 rounded-lg text-[13px] text-gray-800 placeholder:text-gray-400 focus:bg-white focus:ring-1 focus:ring-blue-500 border-0 outline-none" />
+                                        className="w-full px-3 py-2 bg-rs-sand rounded-lg text-[13px] text-rs-deep-brown placeholder:text-rs-desert-brown/60 focus:bg-white focus:ring-1 focus:ring-rs-terracotta border-0 outline-none" />
                                     {showDst && <SuggestionList items={dstSugg} onSelect={pickDst} />}
                                 </div>
                             </div>
-                            <button onClick={swap} className="self-center p-1.5 rounded-full hover:bg-gray-100 text-gray-400"><ArrowRightLeft className="h-4 w-4 rotate-90" /></button>
+                            <button onClick={swap} className="self-center p-1.5 rounded-full hover:bg-rs-sand text-rs-desert-brown"><ArrowRightLeft className="h-4 w-4 rotate-90" /></button>
                         </div>
 
                         {/* Search button */}
                         <button onClick={search} disabled={isLoading || !source || !destination}
-                            className="w-full mt-3 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-[13px] font-medium rounded-full flex items-center justify-center gap-2 transition-colors">
+                            className="w-full mt-3 py-2.5 bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange hover:opacity-90 disabled:opacity-40 disabled:from-rs-sand-dark disabled:to-rs-sand-dark text-white text-[13px] font-medium rounded-full flex items-center justify-center gap-2 transition-all">
                             {isLoading ? <><Loader className="h-4 w-4 animate-spin" /> Searching...</> : <><Search className="h-4 w-4" /> Search</>}
                         </button>
                     </div>
 
-                    {error && <div className="mx-4 mt-3 p-2.5 bg-red-50 rounded-lg text-[13px] text-red-600">{error}</div>}
+                    {error && <div className="mx-4 mt-3 p-2.5 bg-rs-dusty-red/10 rounded-lg text-[13px] text-rs-dusty-red">{error}</div>}
 
                     {/* Route list */}
                     <div className="flex-1 overflow-y-auto">
@@ -163,7 +163,7 @@ export default function PlanTripPage() {
                             const isTransit = r.type === 'transit';
                             return (
                                 <button key={i} onClick={() => { setActiveIdx(i); setShowSteps(true); }}
-                                    className={`w-full text-left px-4 py-3 border-b border-gray-100 transition-colors ${isActive ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                                    className={`w-full text-left px-4 py-3 border-b border-rs-sand transition-colors ${isActive ? 'bg-rs-terracotta/5' : 'hover:bg-rs-sand/50'}`}>
                                     <div className="flex items-start gap-3">
                                         <div className="mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: r.modeColor + '15' }}>
                                             <IC className="h-4 w-4" style={{ color: r.modeColor }} />
@@ -210,19 +210,19 @@ export default function PlanTripPage() {
                 </div>
 
                 {/* ═══════ RIGHT PANEL ═══════ */}
-                <div className="flex-1 bg-gray-50 lg:h-[calc(100vh-56px)] lg:overflow-y-auto">
+                <div className="flex-1 bg-rs-sand-light lg:h-[calc(100vh-56px)] lg:overflow-y-auto">
                     {!routes.length && !isLoading && (
                         <div className="h-full flex items-center justify-center p-10">
                             <div className="text-center max-w-xs">
-                                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4"><Navigation className="h-7 w-7 text-gray-300" /></div>
-                                <p className="text-[14px] text-gray-500">Enter source and destination to find routes</p>
+                                <div className="w-14 h-14 rounded-full bg-rs-sand flex items-center justify-center mx-auto mb-4"><Navigation className="h-7 w-7 text-rs-sand-dark" /></div>
+                                <p className="text-[14px] text-rs-desert-brown">Enter source and destination to find routes</p>
                             </div>
                         </div>
                     )}
                     {isLoading && (
                         <div className="h-full flex items-center justify-center"><div className="text-center">
-                            <Loader className="h-8 w-8 text-blue-500 animate-spin mx-auto mb-3" />
-                            <p className="text-[13px] text-gray-500">Finding the best routes...</p>
+                            <Loader className="h-8 w-8 text-rs-terracotta animate-spin mx-auto mb-3" />
+                            <p className="text-[13px] text-rs-desert-brown">Finding the best routes...</p>
                         </div></div>
                     )}
 
@@ -230,12 +230,12 @@ export default function PlanTripPage() {
                         <div className="p-5 sm:p-6 max-w-2xl mx-auto">
                             {/* ─── Transit Route ─── */}
                             {active.type === 'transit' && active.legs ? (
-                                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                                <div className="bg-white rounded-xl border border-rs-sand-dark overflow-hidden shadow-sm">
                                     {/* Header */}
-                                    <div className="p-4 sm:p-5 border-b border-gray-100">
+                                    <div className="p-4 sm:p-5 border-b border-rs-sand">
                                         <div className="flex items-center justify-between mb-1">
-                                            <span className="text-[18px] font-semibold text-gray-900">{active.departureTime} – {active.arrivalTime}</span>
-                                            <span className="text-[13px] text-gray-500">({fmt(active.totalDuration)})</span>
+                                            <span className="text-[18px] font-semibold text-rs-deep-brown">{active.departureTime} – {active.arrivalTime}</span>
+                                            <span className="text-[13px] text-rs-desert-brown">({fmt(active.totalDuration)})</span>
                                         </div>
                                         {active.linesBadges && (
                                             <div className="flex items-center gap-1.5 mb-2">
@@ -331,8 +331,8 @@ export default function PlanTripPage() {
                                 </div>
                             ) : active.steps ? (
                                 /* ─── Single Mode Route ─── */
-                                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                                    <div className="p-4 sm:p-5 border-b border-gray-100">
+                                <div className="bg-white rounded-xl border border-rs-sand-dark overflow-hidden shadow-sm">
+                                    <div className="p-4 sm:p-5 border-b border-rs-sand">
                                         <div className="flex items-center gap-3 mb-3">
                                             {(() => {
                                                 const IC = icons[active.modeIcon] || Navigation; return (
@@ -361,11 +361,11 @@ export default function PlanTripPage() {
                                     </div>
 
                                     {/* Steps */}
-                                    <button onClick={() => setShowSteps(!showSteps)} className="w-full px-4 sm:px-5 py-3 flex items-center justify-between border-b border-gray-100 hover:bg-gray-50">
-                                        <span className="text-[13px] font-medium text-gray-700 flex items-center gap-2">
+                                    <button onClick={() => setShowSteps(!showSteps)} className="w-full px-4 sm:px-5 py-3 flex items-center justify-between border-b border-rs-sand hover:bg-rs-sand/30">
+                                        <span className="text-[13px] font-medium text-rs-deep-brown flex items-center gap-2">
                                             <Route className="h-4 w-4" style={{ color: active.modeColor }} />
                                             Directions
-                                            <span className="text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{active.steps!.length}</span>
+                                            <span className="text-[11px] text-rs-desert-brown bg-rs-sand px-1.5 py-0.5 rounded">{active.steps!.length}</span>
                                         </span>
                                         {showSteps ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
                                     </button>
@@ -404,9 +404,9 @@ export default function PlanTripPage() {
 // Suggestion dropdown
 function SuggestionList({ items, onSelect }: { items: any[]; onSelect: (p: any) => void }) {
     return (
-        <div className="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-44 overflow-y-auto">
+        <div className="absolute z-30 mt-1 w-full bg-white border border-rs-sand-dark rounded-lg shadow-lg max-h-44 overflow-y-auto">
             {items.map((s: any, i: number) => (
-                <button key={i} onClick={() => onSelect(s)} className="w-full text-left px-3 py-2.5 text-[12px] text-gray-700 hover:bg-blue-50 border-b border-gray-100 last:border-0 flex items-start gap-2">
+                <button key={i} onClick={() => onSelect(s)} className="w-full text-left px-3 py-2.5 text-[12px] text-rs-deep-brown hover:bg-rs-terracotta/5 border-b border-rs-sand last:border-0 flex items-start gap-2">
                     <MapPin className="h-3 w-3 text-red-400 mt-0.5 flex-shrink-0" />
                     <span className="line-clamp-2">{s.display}</span>
                 </button>
