@@ -1,11 +1,13 @@
 'use client';
-
+export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, MapPin, Calendar, Users, Wallet, Plane, Hotel, Utensils, Landmark, Sparkles } from 'lucide-react';
 import TransportFilter from '../../components/trip/TransportFilter';
 import TransportSelection from '../../components/trip/TransportSelection';
 import TouristSpotSelection from '../../components/trip/TouristSpotSelection';
 import ItineraryDisplay from '../../components/trip/ItineraryDisplay';
+
 export default function PlanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,9 +60,6 @@ export default function PlanPage() {
 
       if (data.success && data.trip) {
         console.log('✅ Trip loaded successfully');
-        console.log('Transport options:', data.trip.transportOptions?.length);
-        console.log('Tourist spots:', data.trip.allTouristSpots?.length);
-
         setTrip(data.trip);
         setFilteredTransport(data.trip.transportOptions || []);
         setSelectedTransport(data.trip.selectedTransport || null);
@@ -85,10 +84,8 @@ export default function PlanPage() {
     }
   };
 
-  // Handle transport filter
   const handleFilterChange = (filters: any) => {
     if (!trip) return;
-
     console.log('🔧 Applying filters:', filters);
     let filtered = [...trip.transportOptions];
 
@@ -112,15 +109,11 @@ export default function PlanPage() {
       filtered.sort((a, b) => a.duration - b.duration);
     }
 
-    console.log(`Filtered: ${filtered.length} options`);
     setFilteredTransport(filtered);
   };
 
-  // Handle transport selection
   const handleSelectTransport = async (option: any) => {
     try {
-      console.log('🚗 Selecting transport:', option);
-
       const res = await fetch(`/api/trips/${tripId}/transport`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,53 +121,35 @@ export default function PlanPage() {
       });
 
       const data = await res.json();
-
       if (data.success) {
         setSelectedTransport(option);
         setCosts(data.costs);
-        console.log('✅ Transport selected, new costs:', data.costs);
-      } else {
-        console.error('Failed to select transport:', data);
-        alert('Failed to select transport');
       }
     } catch (error) {
       console.error('Error selecting transport:', error);
-      alert('Failed to select transport');
     }
   };
 
   const handleDeselectTransport = async () => {
     try {
-      console.log('🚫 Deselecting transport');
-
       const res = await fetch(`/api/trips/${tripId}/transport`, {
         method: 'DELETE',
       });
 
       const data = await res.json();
-
       if (data.success) {
         setSelectedTransport(null);
         setCosts(data.costs);
-        console.log('✅ Transport deselected');
-      } else {
-        console.error('Failed to deselect transport:', data);
-        alert('Failed to deselect transport');
       }
     } catch (error) {
       console.error('Error deselecting transport:', error);
-      alert('Failed to deselect transport');
     }
   };
 
-  // Handle spot selection
   const handleToggleSpot = async (spotName: string) => {
     const newSelected = selectedSpots.includes(spotName)
       ? selectedSpots.filter(s => s !== spotName)
       : [...selectedSpots, spotName];
-
-    console.log('🏖️ Toggling spot:', spotName);
-    console.log('New selection:', newSelected);
 
     try {
       const res = await fetch(`/api/trips/${tripId}/spots`, {
@@ -184,72 +159,58 @@ export default function PlanPage() {
       });
 
       const data = await res.json();
-
       if (data.success) {
         setSelectedSpots(newSelected);
         setItinerary(data.itinerary);
         setCosts(data.costs);
-        console.log('✅ Spots updated');
-      } else {
-        console.error('Failed to update spots:', data);
-        alert('Failed to update spots');
       }
     } catch (error) {
       console.error('Error updating spots:', error);
-      alert('Failed to update spots');
     }
   };
 
-  // Handle save trip
   const handleSaveTrip = async () => {
     try {
       setSaving(true);
-      console.log('💾 Saving trip:', tripId);
-
       const res = await fetch(`/api/trips/${tripId}/save`, {
         method: 'POST',
       });
 
       const data = await res.json();
-
       if (data.success) {
         alert('Trip saved successfully! ✅');
         router.push('/dashboard');
-      } else {
-        console.error('Failed to save trip:', data);
-        alert('Failed to save trip');
       }
     } catch (error) {
       console.error('Error saving trip:', error);
-      alert('Failed to save trip');
     } finally {
       setSaving(false);
     }
   };
 
-  // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-pink-50 dark:from-gray-900 dark:to-gray-800">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Loading your trip...</p>
+          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400 font-medium">Loading your trip...</p>
         </div>
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Trip</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-pink-50 dark:from-gray-900 dark:to-gray-800 p-4">
+        <div className="text-center max-w-md bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
+          <div className="text-5xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Error Loading Trip
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
           <button
             onClick={() => router.push('/')}
-            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+            className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg hover:from-orange-600 hover:to-pink-600 transition-all font-medium"
           >
             Go Home
           </button>
@@ -258,22 +219,7 @@ export default function PlanPage() {
     );
   }
 
-  // No trip found
-  if (!trip) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-600 text-lg mb-4">Trip not found</p>
-          <button
-            onClick={() => router.push('/')}
-            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-          >
-            Go Home
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!trip) return null;
 
   const days = Math.ceil(
     (new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) /
@@ -281,59 +227,76 @@ export default function PlanPage() {
   ) + 1;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 dark:from-gray-900 dark:to-gray-800 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => router.push('/')}
-            className="text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-2 transition"
+            className="mb-6 flex items-center gap-2 text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 transition-colors font-medium"
           >
-            ← Back to Home
+            <ArrowLeft className="h-5 w-5" />
+            Back to Home
           </button>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            {trip.source} → {trip.destination}
-          </h1>
-          <p className="text-gray-600">
-            {new Date(trip.startDate).toLocaleDateString()} -{' '}
-            {new Date(trip.endDate).toLocaleDateString()} • {days} days •{' '}
-            {trip.travelers} traveler{trip.travelers > 1 ? 's' : ''}
-          </p>
-        </div>
-
-        {/* Debug Info (Remove in production) */}
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-          <p className="font-semibold mb-2">Debug Info:</p>
-          <p>Transport Options: {filteredTransport.length}</p>
-          <p>Tourist Spots: {trip.allTouristSpots?.length || 0}</p>
-          <p>Selected Spots: {selectedSpots.length}</p>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-orange-100 dark:border-gray-700">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent mb-4">
+              {trip.source} → {trip.destination}
+            </h1>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 rounded-lg">
+                <Calendar className="h-4 w-4 text-orange-600" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 bg-pink-50 dark:bg-pink-900/20 px-3 py-1.5 rounded-lg">
+                <MapPin className="h-4 w-4 text-pink-600" />
+                <span className="text-gray-700 dark:text-gray-300">{days} days</span>
+              </div>
+              <div className="flex items-center gap-2 bg-purple-50 dark:bg-purple-900/20 px-3 py-1.5 rounded-lg">
+                <Users className="h-4 w-4 text-purple-600" />
+                <span className="text-gray-700 dark:text-gray-300">{trip.travelers} traveler{trip.travelers > 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Cost Summary */}
-        <div className="mb-8 bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            Estimated Cost Breakdown
-          </h2>
+        <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-orange-100 dark:border-gray-700">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="p-2 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg">
+              <Wallet className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              Cost Breakdown
+            </h2>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">Transport</p>
-              <p className="text-2xl font-bold text-gray-900">₹{costs.transport}</p>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <Plane className="h-5 w-5 text-blue-600 mb-2" />
+              <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1">Transport</p>
+              <p className="text-xl font-bold text-blue-900 dark:text-blue-300">₹{costs.transport}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Accommodation</p>
-              <p className="text-2xl font-bold text-gray-900">₹{costs.accommodation}</p>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+              <Hotel className="h-5 w-5 text-purple-600 mb-2" />
+              <p className="text-xs text-purple-700 dark:text-purple-400 font-medium mb-1">Accommodation</p>
+              <p className="text-xl font-bold text-purple-900 dark:text-purple-300">₹{costs.accommodation}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Food</p>
-              <p className="text-2xl font-bold text-gray-900">₹{costs.food}</p>
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+              <Utensils className="h-5 w-5 text-orange-600 mb-2" />
+              <p className="text-xs text-orange-700 dark:text-orange-400 font-medium mb-1">Food</p>
+              <p className="text-xl font-bold text-orange-900 dark:text-orange-300">₹{costs.food}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Attractions</p>
-              <p className="text-2xl font-bold text-gray-900">₹{costs.attractions}</p>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+              <Landmark className="h-5 w-5 text-green-600 mb-2" />
+              <p className="text-xs text-green-700 dark:text-green-400 font-medium mb-1">Attractions</p>
+              <p className="text-xl font-bold text-green-900 dark:text-green-300">₹{costs.attractions}</p>
             </div>
-            <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-sm text-blue-600 font-medium">TOTAL</p>
-              <p className="text-3xl font-bold text-blue-900">₹{costs.total}</p>
+            <div className="bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg p-4 shadow-lg">
+              <Sparkles className="h-5 w-5 text-white mb-2" />
+              <p className="text-xs text-orange-100 font-medium mb-1">TOTAL</p>
+              <p className="text-2xl font-bold text-white">₹{costs.total}</p>
             </div>
           </div>
         </div>
@@ -357,9 +320,9 @@ export default function PlanPage() {
             </div>
           </div>
         ) : (
-          <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <p className="text-yellow-800">
-              ⚠️ No transport options available. This might be due to API limits or invalid route.
+          <div className="mb-8 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg p-4">
+            <p className="text-yellow-800 dark:text-yellow-300 text-sm font-medium">
+              ⚠️ No transport options available
             </p>
           </div>
         )}
@@ -375,9 +338,9 @@ export default function PlanPage() {
             />
           </div>
         ) : (
-          <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <p className="text-yellow-800">
-              ⚠️ No tourist spots found. This might be due to API limits or invalid destination.
+          <div className="mb-8 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg p-4">
+            <p className="text-yellow-800 dark:text-yellow-300 text-sm font-medium">
+              ⚠️ No tourist spots found
             </p>
           </div>
         )}
