@@ -142,6 +142,7 @@ export const Hero = () => {
           <div className="w-1.5 h-3 bg-white/50 rounded-full" />
         </div>
       </motion.div>
+
     </section>
   );
 };

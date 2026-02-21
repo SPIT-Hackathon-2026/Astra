@@ -12,6 +12,7 @@ export function formatDate(date: Date): string {
   }).format(new Date(date));
 }
 
+
 export function getDaysBetween(start: Date, end: Date): number {
   const diffTime = Math.abs(end.getTime() - start.getTime());
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));

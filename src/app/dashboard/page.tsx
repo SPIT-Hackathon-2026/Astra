@@ -4,6 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   MapPin,
   Calendar,
