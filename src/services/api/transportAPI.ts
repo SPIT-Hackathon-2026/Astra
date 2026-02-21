@@ -20,7 +20,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
@@ -32,7 +32,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 export async function getCityCoordinates(city: string): Promise<{ lat: number; lon: number; displayName: string } | null> {
   try {
     console.log(`🔍 Getting coordinates for: ${city}`);
-    
+
     const response = await axios.get(
       `https://nominatim.openstreetmap.org/search`,
       {
@@ -57,7 +57,7 @@ export async function getCityCoordinates(city: string): Promise<{ lat: number; l
         displayName: result.display_name
       };
     }
-    
+
     console.log(`❌ City not found: ${city}`);
     return null;
   } catch (error) {
@@ -66,7 +66,7 @@ export async function getCityCoordinates(city: string): Promise<{ lat: number; l
   }
 }
 
-// Get actual route and duration using OSRM (100% FREE routing engine)
+// Get actual route and duration using OSRM (FREE) or OpenRouteService (if key available)
 export async function getRouteDetails(
   sourceLat: number,
   sourceLon: number,
@@ -74,9 +74,39 @@ export async function getRouteDetails(
   destLon: number,
   profile: 'car' | 'bike' = 'car'
 ): Promise<{ distance: number; duration: number; route: string } | null> {
+  // Try OpenRouteService if key is available
+  if (process.env.OPENROUTE_API_KEY) {
+    try {
+      console.log(`🗺️ Getting route via OpenRouteService...`);
+      const response = await axios.get(
+        `https://api.openrouteservice.org/v2/directions/driving-car`,
+        {
+          params: {
+            start: `${sourceLon},${sourceLat}`,
+            end: `${destLon},${destLat}`
+          },
+          headers: {
+            'Authorization': process.env.OPENROUTE_API_KEY
+          }
+        }
+      );
+
+      if (response.data && response.data.features && response.data.features.length > 0) {
+        const route = response.data.features[0];
+        return {
+          distance: route.properties.segments[0].distance / 1000,
+          duration: route.properties.segments[0].duration / 3600,
+          route: JSON.stringify(route.geometry)
+        };
+      }
+    } catch (err) {
+      console.error('OpenRouteService error, falling back to OSRM:', err);
+    }
+  }
+
   try {
     console.log(`🗺️ Getting route via OSRM...`);
-    
+
     const response = await axios.get(
       `https://router.project-osrm.org/route/v1/${profile}/${sourceLon},${sourceLat};${destLon},${destLat}`,
       {
@@ -96,7 +126,7 @@ export async function getRouteDetails(
         route: JSON.stringify(route.geometry)
       };
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error getting route:', error);
@@ -137,10 +167,10 @@ export async function getTrainOptions(
     'agra': 'AGC'
   };
 
-  const sourceStation = Object.keys(stationCodes).find(key => 
+  const sourceStation = Object.keys(stationCodes).find(key =>
     sourceCity.toLowerCase().includes(key)
   );
-  const destStation = Object.keys(stationCodes).find(key => 
+  const destStation = Object.keys(stationCodes).find(key =>
     destCity.toLowerCase().includes(key)
   );
 
@@ -149,29 +179,69 @@ export async function getTrainOptions(
     return [];
   }
 
+  // If RapidAPI key is available, try to get real trains
+  if (process.env.RAPIDAPI_KEY) {
+    console.log(`🚆 Querying RapidAPI for trains: ${stationCodes[sourceStation]} → ${stationCodes[destStation]}...`);
+    try {
+      const response = await axios.get(`https://irctc1.p.rapidapi.com/api/v3/trainBetweenStations`, {
+        params: {
+          fromStationCode: stationCodes[sourceStation],
+          toStationCode: stationCodes[destStation],
+          dateOfJourney: new Date().toISOString().split('T')[0] // Default to today
+        },
+        headers: {
+          'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+          'X-RapidAPI-Host': 'irctc1.p.rapidapi.com'
+        },
+        timeout: 10000
+      });
+
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        console.log(`✅ Found ${response.data.data.length} real trains from RapidAPI`);
+        return response.data.data.slice(0, 5).map((train: any) => {
+          const basePrice = distance * 0.6; // Price often not in this specific API call
+          return {
+            mode: 'train',
+            provider: `${train.train_name} (${train.train_number})`,
+            price: Math.round(basePrice + 100),
+            duration: parseFloat((parseInt(train.duration || '0') / 60).toFixed(1)) || (distance / 60),
+            departureTime: train.from_std || '00:00',
+            arrivalTime: train.to_std || '00:00',
+            stops: train.halt_count || Math.floor(distance / 100),
+            carbonFootprint: Math.round(distance * 0.041),
+            amenities: ['AC Sleeper', 'Pantry', 'Charging points', 'Real-time schedule'],
+            distance: Math.round(distance)
+          };
+        });
+      }
+    } catch (err) {
+      console.error('RapidAPI train error, falling back to heuristic:', err);
+    }
+  }
+
   // Calculate realistic train timings based on distance
   const trainTypes = [
-    { 
-      name: 'Shatabdi/Vande Bharat Express', 
-      speed: 85, 
+    {
+      name: 'Shatabdi/Vande Bharat Express',
+      speed: 85,
       pricePerKm: 0.8,
       amenities: ['AC Chair Car', 'Meals included', 'WiFi', 'Premium comfort']
     },
-    { 
-      name: 'Rajdhani Express', 
-      speed: 75, 
+    {
+      name: 'Rajdhani Express',
+      speed: 75,
       pricePerKm: 1.2,
       amenities: ['AC Sleeper', 'Meals included', 'Bedding', 'Premium service']
     },
-    { 
-      name: 'Duronto/Superfast Express', 
-      speed: 65, 
+    {
+      name: 'Duronto/Superfast Express',
+      speed: 65,
       pricePerKm: 0.6,
       amenities: ['AC 3-Tier', 'Pantry service', 'Charging points', 'Fast travel']
     },
-    { 
-      name: 'Mail/Express', 
-      speed: 55, 
+    {
+      name: 'Mail/Express',
+      speed: 55,
       pricePerKm: 0.4,
       amenities: ['Sleeper/AC', 'Food available', 'Multiple stops', 'Budget friendly']
     }
@@ -197,7 +267,7 @@ export async function getTrainOptions(
     });
   });
 
-  console.log(`🚆 Found ${trains.length} train options`);
+  console.log(`🚆 Found ${trains.length} heuristic train options`);
   return trains;
 }
 
@@ -214,7 +284,7 @@ export async function getFlightOptions(
   }
 
   const flights: TransportOption[] = [];
-  
+
   // Major airport codes
   const airportCodes: { [key: string]: string } = {
     'mumbai': 'BOM',
@@ -234,16 +304,56 @@ export async function getFlightOptions(
     'indore': 'IDR'
   };
 
-  const sourceCode = Object.keys(airportCodes).find(key => 
+  const sourceCode = Object.keys(airportCodes).find(key =>
     sourceCity.toLowerCase().includes(key)
   );
-  const destCode = Object.keys(airportCodes).find(key => 
+  const destCode = Object.keys(airportCodes).find(key =>
     destCity.toLowerCase().includes(key)
   );
 
   if (!sourceCode || !destCode) {
     console.log('⚠️ No major airport found for this route');
     return [];
+  }
+
+  // If Aviationstack API key is available, try to get real flights
+  if (process.env.AVIATIONSTACK_API_KEY) {
+    console.log(`✈️ Querying Aviationstack for ${sourceCode} → ${destCode}...`);
+    try {
+      const response = await axios.get(`http://api.aviationstack.com/v1/flights`, {
+        params: {
+          access_key: process.env.AVIATIONSTACK_API_KEY,
+          dep_iata: airportCodes[sourceCode],
+          arr_iata: airportCodes[destCode],
+          limit: 5
+        },
+        timeout: 10000
+      });
+
+      if (response.data && response.data.data && response.data.data.length > 0) {
+        console.log(`✅ Found ${response.data.data.length} real flights from Aviationstack`);
+        return response.data.data.map((flight: any) => {
+          const depTime = new Date(flight.departure.scheduled);
+          const arrTime = new Date(flight.arrival.scheduled);
+          const durationHrs = (arrTime.getTime() - depTime.getTime()) / (1000 * 60 * 60);
+
+          return {
+            mode: 'flight',
+            provider: `${flight.airline?.name || 'Unknown Airline'} - ${flight.flight?.iata || 'Flight'}`,
+            price: Math.round(3500 + (distance * 2.5)), // Aviationstack doesn't provide price in free tier
+            duration: parseFloat(durationHrs.toFixed(1)) || 2,
+            departureTime: depTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            arrivalTime: arrTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            stops: 0,
+            carbonFootprint: Math.round(distance * 0.158),
+            amenities: ['Real-time flight', 'Baggage allowance', 'In-flight service'],
+            distance: Math.round(distance)
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Aviationstack error, falling back to heuristic flights:', err);
+    }
   }
 
   const airlines = [
@@ -277,7 +387,7 @@ export async function getFlightOptions(
     });
   });
 
-  console.log(`✈️ Found ${flights.length} flight options`);
+  console.log(`✈️ Found ${flights.length} heuristic flight options`);
   return flights;
 }
 
@@ -339,14 +449,14 @@ export async function getMetroOptions(
   // Check if same city and has metro
   const sourceNorm = sourceCity.toLowerCase();
   const destNorm = destCity.toLowerCase();
-  
-  const isSameCity = sourceNorm === destNorm || 
+
+  const isSameCity = sourceNorm === destNorm ||
     (sourceNorm.includes('noida') && destNorm.includes('delhi')) ||
     (sourceNorm.includes('delhi') && destNorm.includes('noida')) ||
     (sourceNorm.includes('gurgaon') && destNorm.includes('delhi')) ||
     (sourceNorm.includes('gurugram') && destNorm.includes('delhi'));
-    
-  const hasMetro = metroCities.some(city => 
+
+  const hasMetro = metroCities.some(city =>
     sourceNorm.includes(city) || destNorm.includes(city)
   );
 
@@ -358,7 +468,7 @@ export async function getMetroOptions(
   const price = Math.min(10 + (distance * 2), 60); // Max ₹60
 
   console.log(`🚇 Found metro option`);
-  
+
   return [{
     mode: 'metro',
     provider: `${sourceCity} Metro Rail`,
@@ -452,7 +562,7 @@ export async function getAllTransportOptions(
 
     // Step 3: Fetch all transport options in parallel
     console.log(`\n📊 Fetching transport modes...`);
-    
+
     const [flights, trains, buses, metro, cars] = await Promise.all([
       getFlightOptions(source, destination, distance),
       getTrainOptions(source, destination, distance, carDuration),
@@ -462,14 +572,14 @@ export async function getAllTransportOptions(
     ]);
 
     // At the end of getAllTransportOptions, before return:
-const allOptions = [...flights, ...trains, ...buses, ...metro, ...cars];
+    const allOptions = [...flights, ...trains, ...buses, ...metro, ...cars];
 
-// Add recommendations
-const optionsWithRecommendations = addRecommendations(allOptions);
+    // Add recommendations
+    const optionsWithRecommendations = addRecommendations(allOptions);
 
-console.log(`\n✅ === TOTAL: ${optionsWithRecommendations.length} transport options found ===\n`);
+    console.log(`\n✅ === TOTAL: ${optionsWithRecommendations.length} transport options found ===\n`);
 
-return optionsWithRecommendations;
+    return optionsWithRecommendations;
 
   } catch (error) {
     console.error('❌ Error fetching transport options:', error);
@@ -545,7 +655,7 @@ export function addRecommendations(options: TransportOption[]): TransportOption[
     if (option.mode === 'metro') {
       reasons.push('🚇 No traffic delays');
     }
-    
+
     return {
       ...option,
       score,
