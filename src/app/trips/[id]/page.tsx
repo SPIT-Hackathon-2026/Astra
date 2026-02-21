@@ -9,37 +9,18 @@ import {
   Bus,
   Car,
   Clock,
-  DollarSign,
   MapPin,
   Star,
   CheckCircle,
   Leaf,
+  IndianRupee,
+  Calendar,
+  Users,
+  Navigation,
+  Sparkles,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
-
-interface TripCosts {
-  transport: number;
-  accommodation: number;
-  food: number;
-  attractions: number;
-  total: number;
-}
-
-interface TripData {
-  _id: string;
-  source: string;
-  destination: string;
-  startDate: string;
-  endDate: string;
-  travelers: number;
-  costs: TripCosts;
-  transportOptions?: any[];
-  allTouristSpots?: any[];
-  selectedTouristSpots?: string[];
-  itinerary?: any[];
-  status: string;
-}
 
 export default function TripDetailsPage() {
   const params = useParams();
@@ -49,29 +30,16 @@ export default function TripDetailsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (params.id) {
-      fetchTripDetails();
-    }
+    if (params.id) fetchTripDetails();
   }, [params.id]);
 
   const fetchTripDetails = async () => {
     try {
-      console.log('🔍 Fetching trip:', params.id);
-      
       const response = await fetch(`/api/trips/${params.id}`);
       const data = await response.json();
-
-      console.log('📥 Trip data:', data);
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to load trip');
-        setIsLoading(false);
-        return;
-      }
-
+      if (!response.ok) { setError(data.error || 'Failed to load trip'); setIsLoading(false); return; }
       setTripData(data.trip);
-    } catch (error: any) {
-      console.error('❌ Error fetching trip:', error);
+    } catch {
       setError('Failed to load trip details');
     } finally {
       setIsLoading(false);
@@ -79,21 +47,32 @@ export default function TripDetailsPage() {
   };
 
   const getTransportIcon = (mode: string) => {
+    const cls = 'h-5 w-5 text-white';
     switch (mode) {
-      case 'flight': return <Plane className="h-5 w-5 text-white" />;
-      case 'train': return <Train className="h-5 w-5 text-white" />;
-      case 'bus': return <Bus className="h-5 w-5 text-white" />;
-      case 'car': return <Car className="h-5 w-5 text-white" />;
-      default: return <MapPin className="h-5 w-5 text-white" />;
+      case 'flight': return <Plane className={cls} />;
+      case 'train': return <Train className={cls} />;
+      case 'bus': return <Bus className={cls} />;
+      case 'car': return <Car className={cls} />;
+      default: return <Navigation className={cls} />;
+    }
+  };
+
+  const modeGradient = (mode: string) => {
+    switch (mode) {
+      case 'flight': return 'from-rs-sky-blue to-rs-sky-blue-light';
+      case 'train': return 'from-rs-terracotta to-rs-sunset-orange';
+      case 'bus': return 'from-rs-neon-teal to-emerald-400';
+      case 'car': return 'from-rs-sunset-purple to-rs-sunset-pink';
+      default: return 'from-rs-desert-brown to-rs-terracotta-light';
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-950 dark:to-purple-950">
+      <div className="min-h-screen flex items-center justify-center bg-rs-sand-light">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading trip details...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-rs-terracotta mx-auto mb-4" />
+          <p className="text-rs-desert-brown">Loading trip details...</p>
         </div>
       </div>
     );
@@ -101,15 +80,15 @@ export default function TripDetailsPage() {
 
   if (error || !tripData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-950 dark:to-purple-950">
-        <div className="text-center">
-          <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            {error || 'Trip not found'}
-          </h2>
-          <Button onClick={() => router.push('/dashboard')}>
-            <ArrowLeft className="mr-2 h-5 w-5" />
-            Back to Dashboard
+      <div className="min-h-screen flex items-center justify-center bg-rs-sand-light">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 rounded-full bg-rs-sand flex items-center justify-center mx-auto mb-4">
+            <Navigation className="h-8 w-8 text-rs-terracotta" />
+          </div>
+          <h2 className="text-2xl font-bold text-rs-deep-brown mb-2">{error || 'Trip not found'}</h2>
+          <p className="text-rs-desert-brown mb-6">We couldn't find the trip you're looking for.</p>
+          <Button onClick={() => router.push('/dashboard')} variant="primary" className="bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange">
+            <ArrowLeft className="mr-2 h-5 w-5" /> Back to Dashboard
           </Button>
         </div>
       </div>
@@ -117,249 +96,178 @@ export default function TripDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-purple-950 dark:to-pink-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="min-h-screen bg-rs-sand-light">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex items-center text-blue-600 hover:text-blue-700 dark:text-blue-400 mb-4 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to Dashboard
+          <button onClick={() => router.push('/dashboard')} className="flex items-center text-rs-terracotta hover:text-rs-terracotta-dark mb-4 transition-colors text-sm font-medium">
+            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Dashboard
           </button>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
-            {tripData.source} → {tripData.destination}
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400">
-            {tripData.duration} day{tripData.duration > 1 ? 's' : ''} trip • {tripData.travelers} traveler{tripData.travelers > 1 ? 's' : ''}
-          </p>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-rs-deep-brown mb-2">
+                {tripData.source} → {tripData.destination}
+              </h1>
+              <div className="flex items-center gap-4 text-rs-desert-brown text-sm">
+                <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {tripData.duration || '–'} days</span>
+                <span className="flex items-center gap-1"><Users className="h-4 w-4" /> {tripData.travelers} traveler{tripData.travelers > 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            {tripData?.costs?.total > 0 && (
+              <div className="bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange rounded-xl px-6 py-3 text-white">
+                <p className="text-white/80 text-xs font-medium">Total Estimated Cost</p>
+                <p className="text-2xl font-bold">₹{tripData.costs.total.toLocaleString()}</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Cost Breakdown */}
-<Card className="mb-6">
-  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-    Cost Breakdown
-  </h2>
-  <div className="grid md:grid-cols-4 gap-6">
-    {tripData?.costs && (Object.entries(tripData.costs) as [string, number][])
-      .filter(([key]) => key !== 'total')
-      .map(([key, value]) => (
-        <div key={key}>
-          <div className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-1">
-            {key.replace(/([A-Z])/g, ' $1').trim()}
-          </div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
-            ₹{value}
-          </div>
-        </div>
-      ))
-    }
-  </div>
-  {tripData?.costs?.total && (
-    <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-      <div className="flex justify-between items-center">
-        <span className="text-lg font-semibold text-gray-900 dark:text-white">
-          Total Cost
-        </span>
-        <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-          ₹{tripData.costs.total}
-        </span>
-      </div>
-    </div>
-  )}
-</Card>
-
-        {/* Transport Options */}
-        <Card className="p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            🚗 Transport Options
-          </h2>
-
-          {tripData.transportOptions.recommended && tripData.transportOptions.recommended.length > 0 ? (
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                Recommended Options
-              </h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                {tripData.transportOptions.recommended.map((option: any, index: number) => (
-                  <Card key={index} hover className="p-6 border-2 border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-3 rounded-xl bg-gradient-to-br ${
-                          option.mode === 'flight' ? 'from-blue-500 to-cyan-500' :
-                          option.mode === 'train' ? 'from-green-500 to-emerald-500' :
-                          option.mode === 'bus' ? 'from-orange-500 to-red-500' :
-                          'from-purple-500 to-pink-500'
-                        }`}>
-                          {getTransportIcon(option.mode)}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-gray-900 dark:text-white capitalize">
-                            {option.mode}
-                          </h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {option.provider}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                          ₹{option.price.toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          per person
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {option.duration}h journey
-                        </span>
-                      </div>
-                      {option.carbonFootprint && (
-                        <div className="flex items-center space-x-2">
-                          <Leaf className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {option.carbonFootprint}kg CO₂
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {option.departureTime && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        🕐 Departs: {option.departureTime} • Arrives: {option.arrivalTime}
-                      </div>
-                    )}
-
-                    {option.amenities && option.amenities.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {option.amenities.map((amenity: string, i: number) => (
-                          <span
-                            key={i}
-                            className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs rounded-full"
-                          >
-                            {amenity}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <Button variant="primary" className="w-full">
-                      Select This Option
-                    </Button>
-                  </Card>
+        {tripData?.costs && (
+          <Card className="mb-6">
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-rs-deep-brown mb-4 flex items-center gap-2">
+                <IndianRupee className="h-5 w-5 text-rs-terracotta" /> Cost Breakdown
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {(['transport', 'accommodation', 'food', 'attractions'] as const).map(key => (
+                  <div key={key} className="bg-rs-sand/50 rounded-xl p-4">
+                    <p className="text-xs text-rs-desert-brown capitalize mb-1">{key}</p>
+                    <p className="text-xl font-bold text-rs-deep-brown">₹{(tripData.costs[key] || 0).toLocaleString()}</p>
+                  </div>
                 ))}
               </div>
             </div>
-          ) : (
-            <p className="text-gray-600 dark:text-gray-400">No transport options available for this route.</p>
-          )}
+          </Card>
+        )}
+
+        {/* Transport Options */}
+        <Card className="mb-6">
+          <div className="p-6">
+            <h2 className="text-lg font-bold text-rs-deep-brown mb-4 flex items-center gap-2">
+              <Car className="h-5 w-5 text-rs-terracotta" /> Transport Options
+            </h2>
+
+            {tripData.transportOptions?.recommended?.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="h-4 w-4 text-rs-neon-teal" />
+                  <span className="text-sm font-semibold text-rs-deep-brown">Recommended</span>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {tripData.transportOptions.recommended.map((option: any, i: number) => (
+                    <div key={i} className="border-2 border-rs-sand-dark rounded-xl p-5 hover:border-rs-terracotta transition-colors">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2.5 rounded-xl bg-gradient-to-br ${modeGradient(option.mode)}`}>
+                            {getTransportIcon(option.mode)}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-rs-deep-brown capitalize">{option.mode}</h4>
+                            <p className="text-xs text-rs-desert-brown">{option.provider}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold text-rs-deep-brown">₹{option.price?.toLocaleString()}</p>
+                          <p className="text-[10px] text-rs-desert-brown">per person</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-rs-desert-brown mb-3">
+                        <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {option.duration}h</span>
+                        {option.carbonFootprint && <span className="flex items-center gap-1"><Leaf className="h-3.5 w-3.5 text-rs-neon-teal" /> {option.carbonFootprint}kg CO₂</span>}
+                      </div>
+                      {option.departureTime && (
+                        <p className="text-xs text-rs-desert-brown mb-3">🕐 {option.departureTime} → {option.arrivalTime}</p>
+                      )}
+                      {option.amenities?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {option.amenities.map((a: string, j: number) => (
+                            <span key={j} className="px-2 py-0.5 bg-rs-sand text-rs-deep-brown text-[10px] rounded-full font-medium">{a}</span>
+                          ))}
+                        </div>
+                      )}
+                      <Button variant="primary" className="w-full bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange text-sm">
+                        Select This Option
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="bg-rs-sand/50 rounded-xl p-8 text-center">
+                <Navigation className="h-8 w-8 text-rs-desert-brown mx-auto mb-2" />
+                <p className="text-rs-desert-brown">No transport options available for this route.</p>
+              </div>
+            )}
+          </div>
         </Card>
 
         {/* Tourist Spots */}
-        {tripData.touristSpots && tripData.touristSpots.length > 0 && (
-          <Card className="p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              🏖️ Top Tourist Spots in {tripData.destination}
-            </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {tripData.touristSpots.map((spot: any, index: number) => (
-                <Card key={index} hover className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-bold text-gray-900 dark:text-white text-lg">
-                      {spot.name}
-                    </h3>
-                    <div className="flex items-center space-x-1 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-1 rounded-full">
-                      <Star className="h-4 w-4 text-yellow-600 fill-yellow-600" />
-                      <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
-                        {spot.rating}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    {spot.description}
-                  </p>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Category:</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {spot.category}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Time needed:</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {spot.estimatedTime}h
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Entry fee:</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {spot.entryFee === 0 ? 'Free' : `₹${spot.entryFee}`}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Best time:</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {spot.bestTimeToVisit}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {/* Suggested Itinerary */}
-        {tripData.itinerary && tripData.itinerary.length > 0 && (
-          <Card className="p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              📋 Suggested {tripData.duration}-Day Itinerary
-            </h2>
-            <div className="space-y-6">
-              {tripData.itinerary.map((day: any[], index: number) => (
-                <div key={index} className="border-l-4 border-blue-600 pl-6">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                    Day {index + 1}
-                  </h3>
-                  <div className="space-y-3">
-                    {day.map((spot: any, spotIndex: number) => (
-                      <div key={spotIndex} className="flex items-start space-x-3">
-                        <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                          {spotIndex + 1}
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-semibold text-gray-900 dark:text-white">
-                            {spot.name}
-                          </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {spot.estimatedTime}h • {spot.category} • {spot.entryFee === 0 ? 'Free' : `₹${spot.entryFee}`}
-                          </div>
-                        </div>
+        {tripData.touristSpots?.length > 0 && (
+          <Card className="mb-6">
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-rs-deep-brown mb-4 flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-rs-sunset-pink" /> Top Spots in {tripData.destination}
+              </h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tripData.touristSpots.map((spot: any, i: number) => (
+                  <div key={i} className="border border-rs-sand-dark rounded-xl p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-bold text-rs-deep-brown">{spot.name}</h3>
+                      <div className="flex items-center gap-0.5 bg-rs-neon-amber/20 px-1.5 py-0.5 rounded-full">
+                        <Star className="h-3 w-3 text-rs-neon-amber fill-rs-neon-amber" />
+                        <span className="text-xs font-semibold text-rs-deep-brown">{spot.rating}</span>
                       </div>
-                    ))}
+                    </div>
+                    <p className="text-xs text-rs-desert-brown mb-3 line-clamp-2">{spot.description}</p>
+                    <div className="grid grid-cols-2 gap-1.5 text-xs">
+                      <div className="flex justify-between"><span className="text-rs-desert-brown">Category</span><span className="font-medium text-rs-deep-brown">{spot.category}</span></div>
+                      <div className="flex justify-between"><span className="text-rs-desert-brown">Time</span><span className="font-medium text-rs-deep-brown">{spot.estimatedTime}h</span></div>
+                      <div className="flex justify-between"><span className="text-rs-desert-brown">Entry</span><span className="font-medium text-rs-deep-brown">{spot.entryFee === 0 ? 'Free' : `₹${spot.entryFee}`}</span></div>
+                      <div className="flex justify-between"><span className="text-rs-desert-brown">Best time</span><span className="font-medium text-rs-deep-brown">{spot.bestTimeToVisit}</span></div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </Card>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-4">
-          <Button variant="primary" className="flex-1">
-            Confirm & Save Trip
+        {/* Itinerary */}
+        {tripData.itinerary?.length > 0 && (
+          <Card className="mb-6">
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-rs-deep-brown mb-4 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-rs-sunset-orange" /> {tripData.duration}-Day Itinerary
+              </h2>
+              <div className="space-y-6">
+                {tripData.itinerary.map((day: any[], i: number) => (
+                  <div key={i} className="border-l-4 border-rs-terracotta pl-5">
+                    <h3 className="text-base font-bold text-rs-deep-brown mb-3">Day {i + 1}</h3>
+                    <div className="space-y-2.5">
+                      {day.map((spot: any, j: number) => (
+                        <div key={j} className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-rs-terracotta to-rs-sunset-orange text-white rounded-full flex items-center justify-center text-xs font-bold">{j + 1}</div>
+                          <div>
+                            <p className="font-semibold text-rs-deep-brown text-sm">{spot.name}</p>
+                            <p className="text-xs text-rs-desert-brown">{spot.estimatedTime}h · {spot.category} · {spot.entryFee === 0 ? 'Free' : `₹${spot.entryFee}`}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <Button variant="primary" className="flex-1 bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange">
+            <CheckCircle className="mr-2 h-4 w-4" /> Confirm & Save Trip
           </Button>
-          <Button variant="outline" className="flex-1" onClick={() => router.push('/dashboard')}>
+          <Button variant="outline" className="flex-1 border-rs-terracotta text-rs-terracotta hover:bg-rs-terracotta/10" onClick={() => router.push('/dashboard')}>
             Back to Dashboard
           </Button>
         </div>
