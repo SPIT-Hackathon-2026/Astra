@@ -1,8 +1,7 @@
-import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+export function cn(...classes: (string | undefined | null | false)[]) {
+  return twMerge(classes.filter(Boolean).join(' '));
 }
 
 export function formatDate(date: Date): string {
@@ -15,6 +14,5 @@ export function formatDate(date: Date): string {
 
 export function getDaysBetween(start: Date, end: Date): number {
   const diffTime = Math.abs(end.getTime() - start.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
