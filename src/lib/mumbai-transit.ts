@@ -110,7 +110,7 @@ export function findNearestStations(lat: number, lng: number, limit = 3): (Stati
 }
 
 export interface TransitLeg {
-    type: 'walk' | 'train';
+    type: 'walk' | 'train' | 'auto';
     from: { name: string; lat: number; lng: number };
     to: { name: string; lat: number; lng: number };
     duration: number; // minutes
@@ -121,6 +121,7 @@ export interface TransitLeg {
     stops?: number;
     serviceName?: string;
     frequency?: string;
+    fare?: number;
 }
 
 export interface TransitRoute {
