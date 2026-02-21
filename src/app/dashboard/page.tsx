@@ -4,6 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   MapPin,
   Calendar,
@@ -155,10 +156,12 @@ export default function DashboardPage() {
                   <Mic className="mr-2 h-4 w-4" />
                   Voice Plan
                 </Button>
-                <Button variant="outline" className="flex-1 sm:flex-none border-white/30 text-white hover:bg-white/10">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Manual
-                </Button>
+                <Link href="/plan" className="flex-1 sm:flex-none">
+                  <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/10">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Manual
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

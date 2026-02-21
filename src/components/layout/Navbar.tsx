@@ -27,7 +27,7 @@ export const Navbar = () => {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-xl z-50 border-b border-rs-sand-dark/30 shadow-sm">
+    <nav className="sticky top-0 w-full bg-white/90 backdrop-blur-xl z-50 border-b border-rs-sand-dark/30 shadow-sm">
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
         <div className="flex justify-between items-center h-16 sm:h-[68px]">
           {/* Logo */}
