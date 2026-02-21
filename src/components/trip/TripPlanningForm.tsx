@@ -45,7 +45,7 @@ export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
+  
     try {
       const response = await fetch('/api/trips/plan', {
         method: 'POST',
@@ -61,7 +61,7 @@ export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
           interests: formData.interests,
         }),
       });
-
+  
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.error || 'Failed to plan trip');
@@ -72,7 +72,8 @@ export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
           router.push(`/trips/${data.tripId}`);
         }, 100);
       } else {
-        throw new Error('Invalid response from server');
+        setError('Failed to create trip. Please try again.');
+        setIsLoading(false);
       }
     } catch (error: any) {
       setError(error.message || 'Something went wrong. Please try again.');

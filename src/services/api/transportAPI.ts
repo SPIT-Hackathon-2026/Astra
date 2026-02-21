@@ -4,7 +4,7 @@ export interface TransportOption {
   mode: 'flight' | 'train' | 'bus' | 'metro' | 'car';
   provider: string;
   price: number;
-  duration: number; // in hours
+  duration: number;
   departureTime: string;
   arrivalTime: string;
   stops?: number;
@@ -13,11 +13,12 @@ export interface TransportOption {
   distance?: number;
   route?: string;
   isRecommended?: boolean;
+  recommendationReason?: string;
 }
 
 // Calculate distance using Haversine formula
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a =
@@ -28,7 +29,15 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-// Get coordinates using Nominatim (100% FREE, no API key needed)
+function calculateArrivalTime(departureTime: string, durationHours: number): string {
+  const [hours, minutes] = departureTime.split(':').map(Number);
+  const totalMinutes = hours * 60 + minutes + Math.round(durationHours * 60);
+  const arrivalHours = Math.floor(totalMinutes / 60) % 24;
+  const arrivalMinutes = totalMinutes % 60;
+  return `${String(arrivalHours).padStart(2, '0')}:${String(arrivalMinutes).padStart(2, '0')}`;
+}
+
+// Get coordinates using Nominatim
 export async function getCityCoordinates(city: string): Promise<{ lat: number; lon: number; displayName: string } | null> {
   try {
     console.log(`🔍 Getting coordinates for: ${city}`);
@@ -118,13 +127,9 @@ export async function getRouteDetails(
       }
     );
 
-    if (response.data && response.data.routes && response.data.routes.length > 0) {
-      const route = response.data.routes[0];
-      return {
-        distance: route.distance / 1000, // Convert to km
-        duration: route.duration / 3600, // Convert to hours
-        route: JSON.stringify(route.geometry)
-      };
+    if (!sourceCode || !destCode) {
+      console.log('⚠️ No airport codes found for this route');
+      return [];
     }
 
     return null;
@@ -245,41 +250,39 @@ export async function getTrainOptions(
       pricePerKm: 0.4,
       amenities: ['Sleeper/AC', 'Food available', 'Multiple stops', 'Budget friendly']
     }
-  ];
 
-  trainTypes.forEach((train, idx) => {
-    const trainDuration = distance / train.speed;
-    const basePrice = distance * train.pricePerKm + 100;
-    const departHour = 6 + (idx * 4);
-    const arriveHour = (departHour + Math.ceil(trainDuration)) % 24;
+    return [];
+  } catch (error: any) {
+    console.error('❌ AviationStack API Error:', error.message);
+    return [];
+  }
+}
 
-    trains.push({
-      mode: 'train',
-      provider: `${train.name} (${stationCodes[sourceStation]} → ${stationCodes[destStation]})`,
-      price: Math.round(basePrice),
-      duration: parseFloat(trainDuration.toFixed(2)),
-      departureTime: `${departHour.toString().padStart(2, '0')}:00`,
-      arrivalTime: `${arriveHour.toString().padStart(2, '0')}:00`,
-      stops: Math.floor(distance / 100),
-      carbonFootprint: Math.round(distance * 0.041),
-      amenities: train.amenities,
-      distance: Math.round(distance)
+// Get REAL bus data from RapidAPI
+async function getRealBusData(
+  source: string,
+  destination: string,
+  date: string
+): Promise<TransportOption[]> {
+  try {
+    console.log(`🚌 Fetching real bus data from RapidAPI...`);
+
+    const response = await axios.get('https://bus-booking-api.p.rapidapi.com/search', {
+      params: {
+        source,
+        destination,
+        journey_date: date,
+      },
+      headers: {
+        'X-RapidAPI-Key': process.env.RAPIDAPI_KEY!,
+        'X-RapidAPI-Host': 'bus-booking-api.p.rapidapi.com',
+      },
     });
-  });
 
   console.log(`🚆 Found ${trains.length} heuristic train options`);
   return trains;
 }
 
-// Get flight options
-export async function getFlightOptions(
-  sourceCity: string,
-  destCity: string,
-  distance: number
-): Promise<TransportOption[]> {
-  // Only show flights for distances > 200km
-  if (distance < 200) {
-    console.log('⚠️ Distance too short for flights');
     return [];
   }
 
@@ -315,6 +318,7 @@ export async function getFlightOptions(
     console.log('⚠️ No major airport found for this route');
     return [];
   }
+}
 
   // If Aviationstack API key is available, try to get real flights
   if (process.env.AVIATIONSTACK_API_KEY) {
@@ -364,74 +368,53 @@ export async function getFlightOptions(
     { name: 'GoAir', priceMultiplier: 0.85 }
   ];
 
-  // Calculate flight duration (avg speed: 800 km/h + 1 hour for boarding/taxi)
-  const flightDuration = (distance / 800) + 1;
-  const basePrice = 2500 + (distance * 3);
-
-  airlines.slice(0, 3).forEach((airline, idx) => {
-    const price = basePrice * airline.priceMultiplier;
+  return trainTypes.map((train, idx) => {
+    const duration = distance / train.speed;
+    const price = distance * train.pricePerKm + 100;
     const departHour = 6 + (idx * 4);
-    const arriveHour = (departHour + Math.ceil(flightDuration)) % 24;
 
-    flights.push({
-      mode: 'flight',
-      provider: `${airline.name} (${airportCodes[sourceCode]} → ${airportCodes[destCode]})`,
+    return {
+      mode: 'train' as const,
+      provider: train.name,
       price: Math.round(price),
-      duration: parseFloat(flightDuration.toFixed(2)),
+      duration: parseFloat(duration.toFixed(2)),
       departureTime: `${departHour.toString().padStart(2, '0')}:00`,
-      arrivalTime: `${arriveHour.toString().padStart(2, '0')}:00`,
-      stops: 0,
-      carbonFootprint: Math.round(distance * 0.158),
-      amenities: ['Baggage allowance', 'In-flight service', 'Fast travel', 'Priority boarding'],
-      distance: Math.round(distance)
-    });
+      arrivalTime: calculateArrivalTime(`${departHour.toString().padStart(2, '0')}:00`, duration),
+      stops: Math.floor(distance / 100),
+      carbonFootprint: Math.round(distance * 0.041),
+      amenities: ['AC', 'Food Service', 'Charging Points'],
+    };
   });
 
   console.log(`✈️ Found ${flights.length} heuristic flight options`);
   return flights;
 }
 
-// Get bus options
-export async function getBusOptions(
-  sourceCity: string,
-  destCity: string,
-  distance: number,
-  duration: number
-): Promise<TransportOption[]> {
-  const buses: TransportOption[] = [];
-
+// Get mock bus data (fallback)
+function getMockBusData(distance: number): TransportOption[] {
   const busOperators = [
-    { name: 'VRL Travels', type: 'AC Sleeper', pricePerKm: 1.5 },
-    { name: 'Paulo Travels', type: 'Luxury Volvo', pricePerKm: 1.8 },
-    { name: 'Neeta Travels', type: 'AC Seater', pricePerKm: 1.2 },
-    { name: 'RedBus Partner', type: 'Semi-Sleeper', pricePerKm: 1.0 },
-    { name: 'KPN Travels', type: 'Multi-Axle', pricePerKm: 1.4 }
+    { name: 'VRL Travels', pricePerKm: 1.5 },
+    { name: 'Paulo Travels', pricePerKm: 1.8 },
+    { name: 'RedBus Partner', pricePerKm: 1.0 },
   ];
 
-  // Buses travel at ~50-60 km/h
-  const busDuration = distance / 50;
-
-  busOperators.slice(0, 3).forEach((bus, idx) => {
+  return busOperators.map((bus, idx) => {
+    const duration = distance / 50;
     const price = distance * bus.pricePerKm;
     const departHour = 19 + idx;
-    const arriveHour = (departHour + Math.ceil(busDuration)) % 24;
 
-    buses.push({
-      mode: 'bus',
-      provider: `${bus.name} - ${bus.type}`,
+    return {
+      mode: 'bus' as const,
+      provider: bus.name,
       price: Math.round(price),
-      duration: parseFloat(busDuration.toFixed(2)),
+      duration: parseFloat(duration.toFixed(2)),
       departureTime: `${departHour.toString().padStart(2, '0')}:00`,
-      arrivalTime: `${arriveHour.toString().padStart(2, '0')}:00`,
-      stops: Math.floor(distance / 100) + 1,
+      arrivalTime: calculateArrivalTime(`${departHour.toString().padStart(2, '0')}:00`, duration),
+      stops: Math.floor(distance / 100),
       carbonFootprint: Math.round(distance * 0.068),
-      amenities: ['WiFi', 'Charging ports', 'Water', 'Rest stops', 'Clean washrooms'],
-      distance: Math.round(distance)
-    });
+      amenities: ['AC', 'WiFi', 'Charging Points'],
+    };
   });
-
-  console.log(`🚌 Found ${buses.length} bus options`);
-  return buses;
 }
 
 // Get metro options (only intra-city)
@@ -483,31 +466,29 @@ export async function getMetroOptions(
   }];
 }
 
-// Get car/taxi options
-export async function getCarOptions(
-  distance: number,
-  duration: number
-): Promise<TransportOption[]> {
-  const carOptions = [
-    { name: 'Ola/Uber Sedan', pricePerKm: 12, speed: 60 },
-    { name: 'Ola/Uber SUV', pricePerKm: 16, speed: 60 },
-    { name: 'Self Drive (Zoomcar)', pricePerKm: 9, speed: 65 }
+  const airlines = [
+    { name: 'IndiGo', multiplier: 1.0 },
+    { name: 'Air India', multiplier: 1.15 },
+    { name: 'SpiceJet', multiplier: 0.9 },
   ];
 
-  const cars: TransportOption[] = carOptions.map(car => ({
-    mode: 'car',
-    provider: car.name,
-    price: Math.round(distance * car.pricePerKm + 100), // Base fare
-    duration: parseFloat((distance / car.speed).toFixed(2)),
-    departureTime: 'Anytime (24/7)',
-    arrivalTime: `${(distance / car.speed).toFixed(1)} hours`,
-    carbonFootprint: Math.round(distance * 0.192),
-    amenities: ['Door-to-door', 'Flexible stops', 'Comfortable', 'Luggage space'],
-    distance: Math.round(distance)
-  }));
+  return airlines.map((airline, idx) => {
+    const duration = (distance / 800) + 1;
+    const price = (2500 + (distance * 3)) * airline.multiplier;
+    const departHour = 6 + (idx * 4);
 
-  console.log(`🚗 Found ${cars.length} car options`);
-  return cars;
+    return {
+      mode: 'flight' as const,
+      provider: airline.name,
+      price: Math.round(price),
+      duration: parseFloat(duration.toFixed(2)),
+      departureTime: `${departHour.toString().padStart(2, '0')}:00`,
+      arrivalTime: calculateArrivalTime(`${departHour.toString().padStart(2, '0')}:00`, duration),
+      stops: 0,
+      carbonFootprint: Math.round(distance * 0.158),
+      amenities: ['In-flight Entertainment', 'Meal'],
+    };
+  });
 }
 
 // MAIN FUNCTION: Get all transport options
@@ -517,47 +498,36 @@ export async function getAllTransportOptions(
   date: string
 ): Promise<TransportOption[]> {
   try {
-    console.log(`\n🚀 === FETCHING TRANSPORT OPTIONS ===`);
-    console.log(`Route: ${source} → ${destination}`);
-    console.log(`Date: ${date}`);
+    console.log(`\n🚗 Fetching ALL transport options: ${source} → ${destination}`);
 
-    // Step 1: Get coordinates
-    const [sourceCoords, destCoords] = await Promise.all([
-      getCityCoordinates(source),
-      getCityCoordinates(destination)
-    ]);
+    // Get coordinates and distance
+    const sourceCoords = await getCityCoordinates(source);
+    const destCoords = await getCityCoordinates(destination);
 
     if (!sourceCoords || !destCoords) {
-      console.error('❌ Could not find city coordinates');
+      console.log('❌ Could not get coordinates');
       return [];
     }
 
-    // Step 2: Get actual route details using OSRM
-    const routeDetails = await getRouteDetails(
+    const distance = calculateDistance(
       sourceCoords.lat,
       sourceCoords.lon,
       destCoords.lat,
-      destCoords.lon,
-      'car'
+      destCoords.lon
     );
 
-    let distance: number;
-    let carDuration: number;
+    console.log(`📏 Distance: ${distance.toFixed(2)} km`);
 
-    if (routeDetails) {
-      distance = routeDetails.distance;
-      carDuration = routeDetails.duration;
-      console.log(`✅ Route found: ${distance.toFixed(0)} km, ${carDuration.toFixed(1)} hours by car`);
+    const allOptions: TransportOption[] = [];
+
+    // 1. Try to get REAL flight data
+    const realFlights = await getRealFlightData(source, destination, date);
+    if (realFlights.length > 0) {
+      console.log(`✅ Using ${realFlights.length} real flights`);
+      allOptions.push(...realFlights);
     } else {
-      // Fallback to straight-line distance
-      distance = calculateDistance(
-        sourceCoords.lat,
-        sourceCoords.lon,
-        destCoords.lat,
-        destCoords.lon
-      );
-      carDuration = distance / 60;
-      console.log(`⚠️ Using straight-line distance: ${distance.toFixed(0)} km`);
+      console.log('⚠️ No real flights, using mock data');
+      allOptions.push(...getMockFlightData(distance));
     }
 
     // Step 3: Fetch all transport options in parallel
@@ -581,66 +551,54 @@ export async function getAllTransportOptions(
 
     return optionsWithRecommendations;
 
-  } catch (error) {
-    console.error('❌ Error fetching transport options:', error);
+  } catch (error: any) {
+    console.error('❌ Error in getAllTransportOptions:', error.message);
     return [];
   }
 }
-// Calculate recommendation score and add reasons
+
+// Calculate recommendations
 export function addRecommendations(options: TransportOption[]): TransportOption[] {
   if (options.length === 0) return options;
 
-  // Calculate scores for each option
   const scoredOptions = options.map(option => {
     let score = 0;
     let reasons: string[] = [];
 
-    // Price factor (lower is better)
+    // Price scoring
     const minPrice = Math.min(...options.map(o => o.price));
     const maxPrice = Math.max(...options.map(o => o.price));
     const priceScore = 1 - (option.price - minPrice) / (maxPrice - minPrice || 1);
-    score += priceScore * 0.3; // 30% weight
+    score += priceScore * 0.3;
 
     if (option.price <= minPrice * 1.2) {
-      reasons.push('💰 Best value for money');
+      reasons.push('💰 Best value');
     }
 
-    // Duration factor (shorter is better)
+    // Duration scoring
     const minDuration = Math.min(...options.map(o => o.duration));
     const maxDuration = Math.max(...options.map(o => o.duration));
     const durationScore = 1 - (option.duration - minDuration) / (maxDuration - minDuration || 1);
-    score += durationScore * 0.35; // 35% weight
+    score += durationScore * 0.35;
 
     if (option.duration <= minDuration * 1.1) {
-      reasons.push('⚡ Fastest travel time');
+      reasons.push('⚡ Fastest');
     }
 
-    // Carbon footprint (lower is better)
+    // Carbon footprint scoring
     if (option.carbonFootprint) {
       const minCarbon = Math.min(...options.filter(o => o.carbonFootprint).map(o => o.carbonFootprint!));
-      const maxCarbon = Math.max(...options.filter(o => o.carbonFootprint).map(o => o.carbonFootprint!));
-      const carbonScore = 1 - (option.carbonFootprint - minCarbon) / (maxCarbon - minCarbon || 1);
-      score += carbonScore * 0.15; // 15% weight
-
       if (option.carbonFootprint <= minCarbon * 1.2) {
-        reasons.push('🌱 Eco-friendly option');
+        reasons.push('🌱 Eco-friendly');
       }
     }
 
-    // Comfort factor (based on amenities and mode)
+    // Comfort scoring
     let comfortScore = 0;
     if (option.mode === 'flight') comfortScore = 0.9;
     else if (option.mode === 'train') comfortScore = 0.7;
-    else if (option.mode === 'car') comfortScore = 0.8;
     else if (option.mode === 'bus') comfortScore = 0.6;
-    else if (option.mode === 'metro') comfortScore = 0.75;
-
-    if (option.amenities && option.amenities.length > 3) {
-      comfortScore += 0.1;
-      reasons.push('✨ Premium amenities');
-    }
-
-    score += comfortScore * 0.2; // 20% weight
+    score += comfortScore * 0.2;
 
     // Add mode-specific reasons
     if (option.mode === 'train' && option.stops && option.stops < 3) {
@@ -663,20 +621,13 @@ export function addRecommendations(options: TransportOption[]): TransportOption[
     };
   });
 
-  // Sort by score
   scoredOptions.sort((a, b) => b.score - a.score);
 
-  // Mark top 2 as recommended
   scoredOptions[0].isRecommended = true;
-  if (scoredOptions.length > 1) {
-    scoredOptions[1].isRecommended = true;
-  }
+  scoredOptions[0].recommendationReason = '🏆 Best Choice - ' + scoredOptions[0].recommendationReason;
 
-  // Add ranking reasons
-  if (scoredOptions[0]) {
-    scoredOptions[0].recommendationReason = '🏆 Best Overall Choice - ' + scoredOptions[0].recommendationReason;
-  }
   if (scoredOptions[1]) {
+    scoredOptions[1].isRecommended = true;
     scoredOptions[1].recommendationReason = '⭐ Great Alternative - ' + scoredOptions[1].recommendationReason;
   }
 

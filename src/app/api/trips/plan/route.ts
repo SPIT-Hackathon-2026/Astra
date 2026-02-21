@@ -32,8 +32,6 @@ export async function POST(req: NextRequest) {
       budgetType,
     } = body;
 
-    console.log('Request body:', { source, destination, startDate, endDate, travelers, interests, budgetType });
-
     // Validation
     if (!source || !destination || !startDate || !endDate) {
       return NextResponse.json(
@@ -52,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`Duration: ${days} days`);
 
-    // Fetch ALL transport options
+    // Fetch ALL transport options (no budget filter initially)
     console.log('\n🚗 Fetching ALL transport options...');
     const transportOptions = await getAllTransportOptions(
       source,
@@ -68,23 +66,28 @@ export async function POST(req: NextRequest) {
 
     console.log(`✅ Found ${touristSpots.length} tourist spots`);
 
-    // Calculate initial costs
+    // Calculate initial costs (NO transport cost initially)
     const accommodationCostPerNight =
       budgetType === 'budget' ? 1500 : budgetType === 'luxury' ? 5000 : 3000;
-    const accommodationCost = (days - 1) * accommodationCostPerNight;
+    const accommodationCost = (days - 1) * accommodationCostPerNight; // -1 because last day doesn't need hotel
 
     const foodCostPerDay = 1000;
     const foodCost = days * (travelers || 1) * foodCostPerDay;
 
     const initialCosts = {
-      transport: 0,
+      transport: 0, // Start with 0
       accommodation: accommodationCost,
       food: foodCost,
-      attractions: 0,
+      attractions: 0, // Will be calculated when user selects spots
       total: accommodationCost + foodCost,
     };
 
-    console.log('\n💰 Initial Costs:', initialCosts);
+    console.log('\n💰 Initial Costs:');
+    console.log(`  Accommodation: ₹${accommodationCost} (${days - 1} nights)`);
+    console.log(`  Food: ₹${foodCost} (${days} days)`);
+    console.log(`  Transport: ₹0 (not selected yet)`);
+    console.log(`  Attractions: ₹0 (not selected yet)`);
+    console.log(`  TOTAL: ₹${initialCosts.total}`);
 
     // Create trip in database
     console.log('\n💾 Saving trip to database...');
@@ -110,11 +113,6 @@ export async function POST(req: NextRequest) {
 
     await trip.save();
     console.log(`✅ Trip saved with ID: ${trip._id}`);
-    console.log('Trip data:', {
-      id: trip._id,
-      transportOptionsCount: trip.transportOptions.length,
-      touristSpotsCount: trip.allTouristSpots.length,
-    });
 
     console.log('\n🎉 === TRIP PLANNING COMPLETE ===\n');
 
@@ -122,22 +120,21 @@ export async function POST(req: NextRequest) {
       success: true,
       tripId: trip._id.toString(),
       trip: {
-        _id: trip._id,
+        id: trip._id,
         source,
         destination,
         startDate: start,
         endDate: end,
         duration: days,
         travelers: travelers || 1,
-        transportOptions: trip.transportOptions,
-        allTouristSpots: trip.allTouristSpots,
+        transportOptions,
+        touristSpots,
         costs: initialCosts,
       },
     });
   } catch (error: any) {
     console.error('\n❌ === TRIP PLANNING FAILED ===');
     console.error('Error:', error.message);
-    console.error('Stack:', error.stack);
 
     return NextResponse.json(
       { error: error.message || 'Failed to plan trip' },

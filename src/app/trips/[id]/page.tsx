@@ -35,7 +35,7 @@ export default function TripDetailsPage() {
     if (params.id) fetchTripDetails();
   }, [params.id]);
 
-  const fetchTripDetails = async () => {
+   const fetchTripDetails = async () => {
     try {
       const response = await fetch(`/api/trips/${params.id}`);
       const data = await response.json();
@@ -137,6 +137,11 @@ export default function TripDetailsPage() {
       </div>
     );
   }
+
+  const days = Math.ceil(
+    (new Date(tripData.endDate).getTime() - new Date(tripData.startDate).getTime()) /
+      (1000 * 60 * 60 * 24)
+  ) + 1;
 
   return (
     <div className="min-h-screen bg-rs-sand-light">
@@ -416,7 +421,7 @@ export default function TripDetailsPage() {
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Existing Static Itinerary if available */}
