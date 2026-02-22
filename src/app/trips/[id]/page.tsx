@@ -125,7 +125,6 @@ export default function TripDetailsPage() {
     });
     doc.save(`trip-${trip._id}.pdf`);
 };
-
 const fetchTripDetails = async () => {
   try {
     console.log('🔍 Fetching trip:', params.id);
@@ -168,7 +167,8 @@ const fetchTripDetails = async () => {
     }
   }, [params.id]);
 
-  
+ 
+
   const handleFilterChange = (filters: any) => {
     if (!tripData || !tripData.transportOptions) return;
     
@@ -291,6 +291,7 @@ const fetchTripDetails = async () => {
       setSaving(false);
     }
   };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-950 dark:to-purple-950">
@@ -483,4 +484,4 @@ const fetchTripDetails = async () => {
       </div>
     </div>
   );
-}
+}  

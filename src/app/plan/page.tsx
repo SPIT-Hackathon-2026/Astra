@@ -414,3 +414,4 @@ function SuggestionList({ items, onSelect }: { items: any[]; onSelect: (p: any) 
         </div>
     );
 }
+}

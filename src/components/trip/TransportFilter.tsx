@@ -37,79 +37,50 @@ export default function TransportFilter({ onFilterChange }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-      <h3 className="text-lg font-semibold mb-4">Filter Transport Options</h3>
+    <div className="bg-white rounded-xl border border-[var(--rs-sand-dark)] p-5 shadow-sm">
+      <h3 className="text-base font-bold text-[var(--rs-deep-brown)] mb-4">Filter Options</h3>
 
-      {/* Budget */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Max Budget (₹)
-        </label>
-        <input
-          type="number"
-          value={budget || ''}
-          onChange={(e) => setBudget(Number(e.target.value))}
-          placeholder="Enter max budget"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        />
+        <label className="block text-xs font-semibold text-[var(--rs-desert-brown)] mb-1.5">Max Budget (₹)</label>
+        <input type="number" value={budget || ''} onChange={(e) => setBudget(Number(e.target.value))}
+          placeholder="e.g. 5000"
+          className="w-full px-3 py-2 border border-[var(--rs-sand-dark)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--rs-terracotta)] focus:border-[var(--rs-terracotta)] bg-[var(--rs-sand-light)] text-[var(--rs-deep-brown)]" />
       </div>
 
-      {/* Transport Modes */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Transport Modes
-        </label>
-        <div className="flex flex-wrap gap-2">
+        <label className="block text-xs font-semibold text-[var(--rs-desert-brown)] mb-1.5">Transport Modes</label>
+        <div className="flex flex-wrap gap-1.5">
           {modes.map(mode => (
-            <button
-              key={mode}
-              onClick={() => handleModeToggle(mode)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                selectedModes.includes(mode)
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
+            <button key={mode} onClick={() => handleModeToggle(mode)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${selectedModes.includes(mode)
+                  ? 'bg-[var(--rs-terracotta)] text-white'
+                  : 'bg-[var(--rs-sand)] text-[var(--rs-deep-brown)] hover:bg-[var(--rs-sand-dark)]'
+                }`}>
               {mode.charAt(0).toUpperCase() + mode.slice(1)}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Max Duration */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Max Duration (hours)
-        </label>
-        <input
-          type="number"
-          value={maxDuration || ''}
-          onChange={(e) => setMaxDuration(Number(e.target.value))}
-          placeholder="Enter max duration"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        />
+        <label className="block text-xs font-semibold text-[var(--rs-desert-brown)] mb-1.5">Max Duration (hours)</label>
+        <input type="number" value={maxDuration || ''} onChange={(e) => setMaxDuration(Number(e.target.value))}
+          placeholder="e.g. 12"
+          className="w-full px-3 py-2 border border-[var(--rs-sand-dark)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--rs-terracotta)] focus:border-[var(--rs-terracotta)] bg-[var(--rs-sand-light)] text-[var(--rs-deep-brown)]" />
       </div>
 
-      {/* Sort By */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Sort By
-        </label>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
+        <label className="block text-xs font-semibold text-[var(--rs-desert-brown)] mb-1.5">Sort By</label>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
+          className="w-full px-3 py-2 border border-[var(--rs-sand-dark)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--rs-terracotta)] bg-[var(--rs-sand-light)] text-[var(--rs-deep-brown)]">
           <option value="price">Price (Low to High)</option>
           <option value="duration">Duration (Shortest)</option>
           <option value="rating">Best Rated</option>
         </select>
       </div>
 
-      <button
-        onClick={handleApplyFilters}
-        className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition"
-      >
+      <button onClick={handleApplyFilters}
+        className="w-full bg-gradient-to-r from-[var(--rs-terracotta)] to-[var(--rs-sunset-orange)] text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition">
         Apply Filters
       </button>
     </div>
