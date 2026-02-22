@@ -265,42 +265,75 @@ export async function getTouristSpots(
       new Map(spots.map(spot => [spot.name, spot])).values()
     );
 
-    // After processing all spots, before returning:
+    // ── Destination-aware category priority ──────────────────────────────────
+    // Determine which categories are most iconic for this destination
+    const destLower = destination.toLowerCase();
 
-    // Calculate popularity score
-    spots.forEach(spot => {
+    // Map destination keywords → their iconic category keywords (in priority order)
+    const destinationCategoryBoosts: Record<string, string[]> = {
+      goa: ['beach', 'fort', 'church', 'water', 'nature'],
+      kerala: ['beach', 'backwater', 'nature', 'temple', 'wildlife'],
+      rajasthan: ['fort', 'palace', 'monument', 'museum', 'temple'],
+      jaipur: ['fort', 'palace', 'monument', 'museum'],
+      delhi: ['monument', 'museum', 'historic', 'fort', 'temple'],
+      agra: ['monument', 'fort', 'palace', 'historic'],
+      varanasi: ['temple', 'ghat', 'worship', 'historic'],
+      mumbai: ['monument', 'museum', 'beach', 'attraction'],
+      manali: ['nature', 'peak', 'viewpoint', 'adventure'],
+      shimla: ['viewpoint', 'nature', 'peak', 'historic'],
+      ooty: ['nature', 'park', 'viewpoint', 'lake'],
+      mysore: ['palace', 'temple', 'museum', 'garden'],
+      pondicherry: ['beach', 'church', 'historic', 'garden'],
+      kashmir: ['nature', 'lake', 'viewpoint', 'garden'],
+    };
+
+    // Find matching boost list for the destination
+    const boostedCategories: string[] =
+      Object.entries(destinationCategoryBoosts).find(([key]) =>
+        destLower.includes(key)
+      )?.[1] || ['monument', 'museum', 'beach', 'temple', 'fort', 'palace', 'viewpoint'];
+
+    // ── Score each spot ───────────────────────────────────────────────────────
+    uniqueSpots.forEach(spot => {
       let popularity = 0;
+      const catLower = spot.category.toLowerCase();
 
-      // Rating factor (40%)
-      popularity += (spot.rating / 5) * 40;
-
-      // Category factor (30%)
-      const popularCategories = ['monument', 'museum', 'beach', 'temple', 'fort', 'palace', 'viewpoint'];
-      const category = spot.category.toLowerCase();
-      if (popularCategories.some(cat => category.includes(cat))) {
-        popularity += 30;
+      // 1. Destination-specific category boost (up to 45 pts, priority-ordered)
+      const boostIdx = boostedCategories.findIndex(bc => catLower.includes(bc));
+      if (boostIdx !== -1) {
+        // First category in list = 45 pts, second = 38, third = 31 … decreasing
+        popularity += Math.max(45 - boostIdx * 7, 10);
       }
 
-      // Description length (indication of importance) (20%)
-      if (spot.description.length > 150) {
-        popularity += 20;
+      // 2. Rating factor (up to 30 pts)
+      popularity += (spot.rating / 5) * 30;
+
+      // 3. Has real description / not generic (15 pts)
+      if (spot.description.length > 100 && !spot.description.startsWith('A popular')) {
+        popularity += 15;
+      } else if (spot.description.length > 50) {
+        popularity += 7;
       }
 
-      // Has image (10%)
+      // 4. Has image (10 pts)
       if (spot.image) {
         popularity += 10;
       }
 
-      spot.popularity = popularity;
-      spot.isPopular = popularity >= 70; // Mark as popular if score >= 70
+      // 5. Has address / coordinates (5 pts each)
+      if (spot.address) popularity += 5;
+      if (spot.coordinates?.lat) popularity += 5;
+
+      spot.popularity = Math.round(popularity);
+      spot.isPopular = popularity >= 55; // generous threshold
     });
 
-    // Sort by popularity
-    spots.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+    // Sort by popularity descending
+    uniqueSpots.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 
-    console.log(`✅ Found ${spots.length} spots (${spots.filter(s => s.isPopular).length} popular)`);
+    console.log(`✅ Found ${uniqueSpots.length} spots (${uniqueSpots.filter(s => s.isPopular).length} popular)`);
 
-    return spots.slice(0, 30);
+    return uniqueSpots.slice(0, 30);
   } catch (error) {
     console.error('❌ Error fetching tourist spots:', error);
     return [];

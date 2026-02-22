@@ -45,12 +45,12 @@ const hasVRSupport = tripData && vrDestinations.includes(tripData.destination.to
 
   const generateTripPDF = (trip: any, selectedSpots: any[], selectedTransport: any[]) => {
     const doc = new jsPDF();
-    
+
     // Title
     doc.setFontSize(20);
     doc.setTextColor(139, 69, 19); // rs-deep-brown
     doc.text('Trip Itinerary', 105, 20, { align: 'center' });
-    
+
     // Trip Details
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
@@ -59,12 +59,12 @@ const hasVRSupport = tripData && vrDestinations.includes(tripData.destination.to
     doc.text(`Dates: ${new Date(trip.startDate).toLocaleDateString()} - ${new Date(trip.endDate).toLocaleDateString()}`, 20, 56);
     doc.text(`Travelers: ${trip.travelers}`, 20, 64);
     doc.text(`Status: ${trip.status}`, 20, 72);
-    
+
     // Selected Tourist Spots
     doc.setFontSize(14);
     doc.setTextColor(139, 69, 19);
     doc.text('Selected Tourist Spots', 20, 88);
-    
+
     const spotsData = selectedSpots.map((spot, i) => [
       i + 1,
       spot.name,
@@ -73,7 +73,7 @@ const hasVRSupport = tripData && vrDestinations.includes(tripData.destination.to
       `₹${spot.entryFee}`,
       spot.bestTimeToVisit
     ]);
-    
+
     autoTable(doc, {
       startY: 92,
       head: [['#', 'Spot', 'Category', 'Time', 'Fee', 'Best Time']],
@@ -81,13 +81,13 @@ const hasVRSupport = tripData && vrDestinations.includes(tripData.destination.to
       theme: 'grid',
       headStyles: { fillColor: [210, 180, 140] },
     });
-    
+
     // Selected Transport
     const transportY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(14);
     doc.setTextColor(139, 69, 19);
     doc.text('Selected Transport Options', 20, transportY);
-    
+
     const transportData = selectedTransport.map((t, i) => [
       i + 1,
       t.type,
@@ -96,7 +96,7 @@ const hasVRSupport = tripData && vrDestinations.includes(tripData.destination.to
       `₹${t.price}`,
       t.comfortLevel
     ]);
-    
+
     autoTable(doc, {
       startY: transportY + 4,
       head: [['#', 'Type', 'Name', 'Duration', 'Price', 'Comfort']],
@@ -104,13 +104,13 @@ const hasVRSupport = tripData && vrDestinations.includes(tripData.destination.to
       theme: 'grid',
       headStyles: { fillColor: [210, 180, 140] },
     });
-    
+
     // Cost Summary
     const costY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(14);
     doc.setTextColor(139, 69, 19);
     doc.text('Cost Breakdown', 20, costY);
-    
+
     const costs = trip.costs || {};
     const costData = [
       ['Transportation', `₹${costs.transportation || 0}`],
@@ -119,7 +119,7 @@ const hasVRSupport = tripData && vrDestinations.includes(tripData.destination.to
       ['Activities', `₹${costs.activities || 0}`],
       ['Total', `₹${costs.total || 0}`]
     ];
-    
+
     autoTable(doc, {
       startY: costY + 4,
       body: costData,
@@ -131,54 +131,54 @@ const hasVRSupport = tripData && vrDestinations.includes(tripData.destination.to
       }
     });
     doc.save(`trip-${trip._id}.pdf`);
-};
-const fetchTripDetails = async () => {
-  try {
-    console.log('🔍 Fetching trip:', params.id);
-    
-    const response = await fetch(`/api/trips/${params.id}`);
-    const data = await response.json();
+  };
+  const fetchTripDetails = async () => {
+    try {
+      console.log('🔍 Fetching trip:', params.id);
 
-    console.log('📥 Raw API Response:', data);
-    console.log('📦 Trip object keys:', Object.keys(data.trip || {}));
-    console.log('🎯 allTouristSpots exists?', 'allTouristSpots' in (data.trip || {}));
-    console.log('🎯 touristSpots exists?', 'touristSpots' in (data.trip || {}));
-    console.log('🎯 allTouristSpots value:', data.trip?.allTouristSpots);
-    console.log('🎯 touristSpots value:', data.trip?.touristSpots);
-    
-    if (!response.ok) {
-      setError(data.error || 'Failed to load trip');
+      const response = await fetch(`/api/trips/${params.id}`);
+      const data = await response.json();
+
+      console.log('📥 Raw API Response:', data);
+      console.log('📦 Trip object keys:', Object.keys(data.trip || {}));
+      console.log('🎯 allTouristSpots exists?', 'allTouristSpots' in (data.trip || {}));
+      console.log('🎯 touristSpots exists?', 'touristSpots' in (data.trip || {}));
+      console.log('🎯 allTouristSpots value:', data.trip?.allTouristSpots);
+      console.log('🎯 touristSpots value:', data.trip?.touristSpots);
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to load trip');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('✅ Trip data counts:');
+      console.log('  - Transport options:', data.trip?.transportOptions?.length || 0);
+      console.log('  - Tourist spots (allTouristSpots):', data.trip?.allTouristSpots?.length || 0);
+      console.log('  - Tourist spots (touristSpots):', data.trip?.touristSpots?.length || 0);
+      console.log('  - Itinerary days:', data.trip?.itinerary?.length || 0);
+
+      setTripData(data.trip);
+      setFilteredTransport(data.trip.transportOptions || []);
+      setSelectedSpots(data.trip.selectedTouristSpots || []);
+    } catch (error: any) {
+      console.error('❌ Error fetching trip:', error);
+      setError('Failed to load trip details');
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    console.log('✅ Trip data counts:');
-    console.log('  - Transport options:', data.trip?.transportOptions?.length || 0);
-    console.log('  - Tourist spots (allTouristSpots):', data.trip?.allTouristSpots?.length || 0);
-    console.log('  - Tourist spots (touristSpots):', data.trip?.touristSpots?.length || 0);
-    console.log('  - Itinerary days:', data.trip?.itinerary?.length || 0);
-
-    setTripData(data.trip);
-    setFilteredTransport(data.trip.transportOptions || []);
-    setSelectedSpots(data.trip.selectedTouristSpots || []);
-  } catch (error: any) {
-    console.error('❌ Error fetching trip:', error);
-    setError('Failed to load trip details');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
   useEffect(() => {
     if (params.id) {
       fetchTripDetails();
     }
   }, [params.id]);
 
- 
+
 
   const handleFilterChange = (filters: any) => {
     if (!tripData || !tripData.transportOptions) return;
-    
+
     let filtered = [...tripData.transportOptions];
 
     if (filters.budget) {
@@ -274,15 +274,15 @@ const fetchTripDetails = async () => {
   const handleSaveTrip = async () => {
     try {
       setSaving(true);
-  
+
       const response = await fetch(`/api/trips/${params.id}/save`, {
         method: 'POST',
       });
-  
+
       if (!response.ok) throw new Error('Failed to save trip');
-  
+
       const data = await response.json();
-  
+
       generateTripPDF(
         data.trip || tripData,
         tripData.allTouristSpots.filter((s: any) =>
@@ -290,7 +290,7 @@ const fetchTripDetails = async () => {
         ),
         tripData.selectedTransport ? [tripData.selectedTransport] : []
       );
-  
+
       router.push('/dashboard');
     } catch (error: any) {
       console.error('Error saving trip:', error);
@@ -332,11 +332,12 @@ const fetchTripDetails = async () => {
 
   const days = Math.ceil(
     (new Date(tripData.endDate).getTime() - new Date(tripData.startDate).getTime()) /
-      (1000 * 60 * 60 * 24)
+    (1000 * 60 * 60 * 24)
   ) + 1;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-purple-950 dark:to-pink-950 py-8">
+<<<<<<< HEAD
        <Toaster position="top-right" />
        {showVRViewer && tripData && (
   <VRViewer
@@ -344,6 +345,9 @@ const fetchTripDetails = async () => {
     onClose={() => setShowVRViewer(false)}
   />
 )}
+=======
+      <Toaster position="top-right" />
+>>>>>>> 340ff0ada084303b6c293659b933a526730c8c00
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -379,7 +383,7 @@ const fetchTripDetails = async () => {
                 )}
               </button>
             </div>
-            
+
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <Calendar className="h-4 w-4" />
@@ -387,7 +391,7 @@ const fetchTripDetails = async () => {
                   {new Date(tripData.startDate).toLocaleDateString()} - {new Date(tripData.endDate).toLocaleDateString()}
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <MapPin className="h-4 w-4" />
                 <span>{days} days</span>
@@ -396,21 +400,14 @@ const fetchTripDetails = async () => {
                 <Users className="h-4 w-4" />
                 <span>{tripData.travelers} traveler{tripData.travelers > 1 ? 's' : ''}</span>
               </div>
-              
+
               <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <DollarSign className="h-4 w-4" />
                 <span className="capitalize">{tripData.budgetType}</span>
               </div>
-              
+
             </div>
-            {/* Debug Info - Remove in production */}
-        <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg text-xs">
-          <p className="font-bold mb-2">Debug Info:</p>
-          <p>Transport Options: {tripData.transportOptions?.length || 0}</p>
-          <p>Tourist Spots: {tripData.touristSpots?.length || 0}</p>
-          <p>Itinerary Days: {tripData.itinerary?.length || 0}</p>
-          <p>Selected Spots: {selectedSpots.length}</p>
-        </div>
+            
           </div>
         </div>
 
@@ -475,6 +472,7 @@ const fetchTripDetails = async () => {
 
         {/* Tourist Spots Selection */}
         {tripData.allTouristSpots?.length > 0 && (
+<<<<<<< HEAD
   <TouristSpotSelection
     spots={tripData.allTouristSpots}
     selectedSpots={selectedSpots}
@@ -491,6 +489,15 @@ const fetchTripDetails = async () => {
     Explore with VR
   </Button>
 )}
+=======
+          <TouristSpotSelection
+            spots={tripData.allTouristSpots}
+            selectedSpots={selectedSpots}
+            onToggleSpot={handleToggleSpot}
+            maxDays={days}
+          />
+        )}
+>>>>>>> 340ff0ada084303b6c293659b933a526730c8c00
 
         {/* Itinerary Display */}
         {tripData.itinerary && tripData.itinerary.length > 0 && (
@@ -503,7 +510,7 @@ const fetchTripDetails = async () => {
           </div>
         )}
 
-        
+
       </div>
     </div>
   );

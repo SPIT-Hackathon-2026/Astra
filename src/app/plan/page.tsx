@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     ArrowLeft, MapPin, Navigation, Search, Car, Footprints, Bike, Train,
     Loader, ChevronDown, ChevronUp, ArrowRightLeft, LocateFixed, Truck,
@@ -57,8 +57,29 @@ async function searchPlaces(q: string) {
 // ─── Component ────────────────────────────────────────
 export default function PlanTripPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [source, setSource] = useState('');
     const [destination, setDestination] = useState('');
+
+    useEffect(() => {
+        const fetchContext = async () => {
+            if (searchParams.get('plan') === 'true') {
+                try {
+                    const res = await fetch('/api/chat/context');
+                    const data = await res.json();
+                    if (data.source) setSource(data.source);
+                    if (data.destination) setDestination(data.destination);
+
+                    // If both are present, we could trigger a search, 
+                    // but the search function uses refs/state that might not be ready.
+                    // Instead, let it pre-fill and wait for user to click Search or we can try to call search() if we refactor it.
+                } catch (e) {
+                    console.error('Failed to pre-fill short trip:', e);
+                }
+            }
+        };
+        fetchContext();
+    }, [searchParams]);
     const [srcC, setSrcC] = useState<{ lat: number; lng: number } | null>(null);
     const [dstC, setDstC] = useState<{ lat: number; lng: number } | null>(null);
     const [srcSugg, setSrcSugg] = useState<any[]>([]);
