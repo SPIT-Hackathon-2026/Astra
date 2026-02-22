@@ -8,6 +8,7 @@ import {
     Timer, Ruler, Route, Clock,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import PaymentPanel from '../../components/journey/PaymentPanel';
 
 // ─── Types ────────────────────────────────────────────
 interface TransitLeg {
@@ -93,13 +94,55 @@ export default function PlanTripPage() {
     const [showSteps, setShowSteps] = useState(true);
     const srcT = useRef<NodeJS.Timeout | null>(null);
     const dstT = useRef<NodeJS.Timeout | null>(null);
+    const [gpsLoading, setGpsLoading] = useState(false);
+    const [gpsError, setGpsError] = useState('');
 
     const onSrc = (v: string) => { setSource(v); setSrcC(null); if (srcT.current) clearTimeout(srcT.current); srcT.current = setTimeout(async () => { const r = await searchPlaces(v); setSrcSugg(r); setShowSrc(r.length > 0); }, 300); };
     const onDst = (v: string) => { setDestination(v); setDstC(null); if (dstT.current) clearTimeout(dstT.current); dstT.current = setTimeout(async () => { const r = await searchPlaces(v); setDstSugg(r); setShowDst(r.length > 0); }, 300); };
     const pickSrc = (p: any) => { setSource(p.display.split(',').slice(0, 2).join(',')); setSrcC({ lat: p.lat, lng: p.lng }); setShowSrc(false); };
     const pickDst = (p: any) => { setDestination(p.display.split(',').slice(0, 2).join(',')); setDstC({ lat: p.lat, lng: p.lng }); setShowDst(false); };
     const swap = () => { setSource(destination); setDestination(source); setSrcC(dstC); setDstC(srcC); };
-    const gps = () => { navigator.geolocation?.getCurrentPosition(p => { setSrcC({ lat: p.coords.latitude, lng: p.coords.longitude }); setSource('Current Location'); }); };
+    const gps = () => {
+        setGpsError('');
+        if (!navigator.geolocation) { setGpsError('Geolocation not supported by your browser'); return; }
+        setGpsLoading(true);
+        setSource('Fetching location...');
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                const { latitude: lat, longitude: lng } = pos.coords;
+                setSrcC({ lat, lng });
+                try {
+                    const r = await fetch(`/api/reverse-geocode?lat=${lat}&lng=${lng}`);
+                    const data = await r.json();
+                    if (data?.address) {
+                        const addr = data.address;
+                        // Build a short human-readable label
+                        const label = [
+                            addr.road || addr.pedestrian || addr.footway,
+                            addr.suburb || addr.neighbourhood || addr.quarter,
+                            addr.city || addr.town || addr.village || addr.county,
+                        ].filter(Boolean).slice(0, 2).join(', ');
+                        setSource(label || data.display_name.split(',').slice(0, 2).join(','));
+                    } else {
+                        setSource(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                    }
+                } catch {
+                    setSource(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                } finally {
+                    setGpsLoading(false);
+                }
+            },
+            (err) => {
+                setGpsLoading(false);
+                setSource('');
+                if (err.code === 1) setGpsError('Location permission denied. Please allow access in your browser.');
+                else if (err.code === 2) setGpsError('Unable to determine your location. Try again.');
+                else setGpsError('Location request timed out. Try again.');
+                setTimeout(() => setGpsError(''), 5000);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
 
     const search = async () => {
         setError(''); let fc = srcC, tc = dstC;
@@ -152,7 +195,18 @@ export default function PlanTripPage() {
                                         <input type="text" placeholder="Choose starting point, or click on the map" value={source} onChange={e => onSrc(e.target.value)}
                                             onFocus={() => srcSugg.length > 0 && setShowSrc(true)} onBlur={() => setTimeout(() => setShowSrc(false), 200)}
                                             className="flex-1 px-3 py-2 bg-rs-sand rounded-lg text-[13px] text-rs-deep-brown placeholder:text-rs-desert-brown/60 focus:bg-white focus:ring-1 focus:ring-rs-terracotta border-0 outline-none" />
-                                        <button onClick={gps} className="p-1.5 rounded-full hover:bg-rs-sand text-rs-terracotta"><LocateFixed className="h-4 w-4" /></button>
+                                        <button
+                                            onClick={gps}
+                                            disabled={gpsLoading}
+                                            title="Use my current location"
+                                            className={`p-1.5 rounded-full transition-all flex-shrink-0 ${gpsLoading
+                                                ? 'text-rs-terracotta bg-rs-terracotta/10 cursor-wait'
+                                                : 'hover:bg-rs-terracotta/10 text-rs-terracotta hover:scale-110'
+                                                }`}>
+                                            {gpsLoading
+                                                ? <Loader className="h-4 w-4 animate-spin" />
+                                                : <LocateFixed className="h-4 w-4" />}
+                                        </button>
                                     </div>
                                     {showSrc && <SuggestionList items={srcSugg} onSelect={pickSrc} />}
                                 </div>
@@ -174,7 +228,12 @@ export default function PlanTripPage() {
                         </button>
                     </div>
 
-                    {error && <div className="mx-4 mt-3 p-2.5 bg-rs-dusty-red/10 rounded-lg text-[13px] text-rs-dusty-red">{error}</div>}
+                    {(error || gpsError) && (
+                        <div className="mx-4 mt-3 p-2.5 bg-rs-dusty-red/10 rounded-lg text-[13px] text-rs-dusty-red flex items-start gap-2">
+                            <span className="flex-shrink-0 mt-0.5">⚠️</span>
+                            <span>{error || gpsError}</span>
+                        </div>
+                    )}
 
                     {/* Route list */}
                     <div className="flex-1 overflow-y-auto">
@@ -414,6 +473,15 @@ export default function PlanTripPage() {
                                     )}
                                 </div>
                             ) : null}
+
+                            {/* ── Payment Panel ── */}
+                            <PaymentPanel
+                                source={source}
+                                destination={destination}
+                                sourceCoords={srcC}
+                                destCoords={dstC}
+                                activeRoute={active}
+                            />
                         </div>
                     )}
                 </div>
@@ -435,3 +503,4 @@ function SuggestionList({ items, onSelect }: { items: any[]; onSelect: (p: any) 
         </div>
     );
 }
+

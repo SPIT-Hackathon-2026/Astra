@@ -4,6 +4,36 @@ import { authOptions } from '../../../auth/[...nextauth]/route';
 import dbConnect from '../../../../../lib/mongodb';
 import Trip from '../../../../../models/Trip';
 
+// GET all trips for the logged-in user
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+
+    const trips = await Trip.find({ 
+      userId: session.user.id || session.user.email 
+    })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    return NextResponse.json({
+      success: true,
+      trips,
+    });
+  } catch (error: any) {
+    console.error('Error fetching trips:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch trips' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

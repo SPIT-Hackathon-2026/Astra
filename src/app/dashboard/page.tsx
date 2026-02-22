@@ -3,6 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -38,9 +39,56 @@ export default function DashboardPage() {
   const searchParams = useSearchParams();
   const [greeting, setGreeting] = useState('');
   const [showTripForm, setShowTripForm] = useState(false);
+<<<<<<< HEAD
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [initialFormData, setInitialFormData] = useState<any>(null);
+=======
+  const [trips, setTrips] = useState<any[]>([]);
+const [loadingTrips, setLoadingTrips] = useState(true);
+// Add this helper function before the return statement
+const calculateStats = () => {
+  const totalTrips = trips.length;
+  
+  const confirmedTrips = trips.filter(trip => 
+    trip.status?.toLowerCase() === 'confirmed'
+  ).length;
+  
+  const totalSpots = trips.reduce((sum, trip) => 
+    sum + (trip.allTouristSpots?.length || 0), 0
+  );
+  
+  const totalCost = trips.reduce((sum, trip) => 
+    sum + (trip.costs?.total || 0), 0
+  );
+>>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
 
+  return [
+    {
+      icon: MapPin,
+      label: 'Total Trips',
+      value: totalTrips,
+      color: 'from-rs-terracotta to-orange-600'
+    },
+    {
+      icon: Calendar,
+      label: 'Confirmed',
+      value: confirmedTrips,
+      color: 'from-green-500 to-emerald-600'
+    },
+    {
+      icon: Star,
+      label: 'Tourist Spots',
+      value: totalSpots,
+      color: 'from-blue-500 to-indigo-600'
+    },
+    {
+      icon: TrendingUp,
+      label: 'Total Budget',
+      value: totalCost > 0 ? `₹${(totalCost / 1000).toFixed(1)}k` : '₹0',
+      color: 'from-purple-500 to-pink-600'
+    }
+  ];
+};
   useEffect(() => {
     if (searchParams.get('plan') === 'true') {
       fetch('/api/chat/context')
@@ -61,7 +109,29 @@ export default function DashboardPage() {
     if (hour < 12) setGreeting('Good morning');
     else if (hour < 18) setGreeting('Good afternoon');
     else setGreeting('Good evening');
+<<<<<<< HEAD
   }, [status, router, searchParams]);
+=======
+  }, [status, router]);
+  useEffect(() => {
+    const fetchTrips = async () => {
+      try {
+        const res = await fetch('/api/trips/fetch');
+        if (!res.ok) throw new Error('Failed to fetch trips');
+        const data = await res.json();
+        setTrips(data);
+      } catch (err) {
+        console.error('Error fetching trips:', err);
+      } finally {
+        setLoadingTrips(false);
+      }
+    };
+  
+    if (status === 'authenticated') {
+      fetchTrips();
+    }
+  }, [status]);
+>>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
 
   if (status === 'loading') {
     return (
@@ -74,42 +144,13 @@ export default function DashboardPage() {
     );
   }
 
+
   const handleSignOut = async () => {
     await signOut({ redirect: false });
     router.push('/');
   };
 
-  const stats = [
-    { label: 'Active Trips', value: '3', icon: Car, color: 'from-rs-terracotta to-rs-sunset-orange' },
-    { label: 'Places Visited', value: '24', icon: MapPin, color: 'from-rs-neon-teal to-rs-sky-blue' },
-    { label: 'Upcoming', value: '2', icon: Calendar, color: 'from-rs-neon-amber to-rs-sunset-orange' },
-    { label: 'Saved Routes', value: '12', icon: Star, color: 'from-rs-sunset-purple to-rs-sunset-pink' },
-  ];
-
-  const trips = [
-    {
-      name: 'Route 66 Classic',
-      date: 'Dec 15–22, 2024',
-      status: 'Upcoming',
-      image: '/images/trip-route66.png',
-      statusColor: 'bg-rs-neon-amber/15 text-rs-sunset-orange',
-    },
-    {
-      name: 'Pacific Coast Highway',
-      date: 'Jan 5–12, 2025',
-      status: 'Planning',
-      image: '/images/trip-coast.png',
-      statusColor: 'bg-rs-neon-teal/15 text-rs-neon-teal',
-    },
-    {
-      name: 'Grand Canyon Loop',
-      date: 'Nov 10–15, 2024',
-      status: 'Completed',
-      image: '/images/trip-canyon.png',
-      statusColor: 'bg-rs-terracotta/10 text-rs-terracotta',
-    },
-  ];
-
+ 
   const firstName = session?.user?.name?.split(' ')[0] || 'Traveler';
 
   return (
@@ -203,22 +244,22 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-10">
-          {stats.map((stat, i) => (
-            <div key={i} className="bg-white rounded-xl p-4 sm:p-5 border border-rs-sand-dark/20 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-3">
-                <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.color}`}>
-                  <stat.icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-bold text-rs-deep-brown mb-0.5">
-                {stat.value}
-              </div>
-              <div className="text-xs sm:text-sm text-rs-desert-brown">
-                {stat.label}
+        {calculateStats().map((stat, i) => (
+          <div key={i} className="bg-white rounded-xl p-4 sm:p-5 border border-rs-sand-dark/20 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.color}`}>
+                <stat.icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
             </div>
-          ))}
-        </div>
+            <div className="text-2xl sm:text-3xl font-bold text-rs-deep-brown mb-0.5">
+              {stat.value}
+            </div>
+            <div className="text-xs sm:text-sm text-rs-desert-brown">
+              {stat.label}
+            </div>
+          </div>
+        ))}
+      </div>
 
         {/* Recent Trips */}
         <div className="mb-8 sm:mb-10">
@@ -233,32 +274,51 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {trips.map((trip, i) => (
-              <div key={i} className="bg-white rounded-xl overflow-hidden border border-rs-sand-dark/20 hover:shadow-lg hover:border-rs-terracotta/15 transition-all duration-300 cursor-pointer group">
-                <div className="relative h-36 sm:h-40 overflow-hidden">
-                  <Image
-                    src={trip.image}
-                    alt={trip.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-                <div className="p-4 sm:p-5">
-                  <div className="mb-2">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold ${trip.statusColor}`}>
-                      {trip.status}
-                    </span>
-                  </div>
-                  <h3 className="text-base sm:text-lg font-bold text-rs-deep-brown mb-1.5 group-hover:text-rs-terracotta transition-colors">
-                    {trip.name}
-                  </h3>
-                  <div className="flex items-center text-rs-desert-brown text-sm">
-                    <Clock className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                    {trip.date}
-                  </div>
-                </div>
-              </div>
-            ))}
+           {loadingTrips ? (
+  <p className="text-sm text-rs-desert-brown">Loading trips...</p>
+) : trips.length === 0 ? (
+  <p className="text-sm text-rs-desert-brown">No trips created yet</p>
+) : (
+  trips.map((trip) => (
+    <div
+      key={trip._id}
+      onClick={() => router.push(`/trips/${trip._id}`)}
+      className="bg-white rounded-xl overflow-hidden border border-rs-sand-dark/20 hover:shadow-lg hover:border-rs-terracotta/15 transition-all duration-300 cursor-pointer group"
+    >
+      {/* Image */}
+      <div className="relative h-36 sm:h-40 overflow-hidden">
+        <Image
+          src={trip.coverImage || '/images/trip-canyon.png'}
+          alt={trip.destination}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+      </div>
+
+      {/* Content */}
+      <div className="p-4 sm:p-5">
+        {/* Status */}
+        <div className="mb-2">
+          <span className="inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold bg-rs-neon-teal/15 text-rs-neon-teal">
+            {trip.status || 'Planned'}
+          </span>
+        </div>
+
+        {/* Destination */}
+        <h3 className="text-base sm:text-lg font-bold text-rs-deep-brown mb-1.5 group-hover:text-rs-terracotta transition-colors">
+          {trip.destination}
+        </h3>
+
+        {/* Dates */}
+        <div className="flex items-center text-rs-desert-brown text-sm">
+          <Clock className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+          {new Date(trip.startDate).toLocaleDateString()} –{' '}
+          {new Date(trip.endDate).toLocaleDateString()}
+        </div>
+      </div>
+    </div>
+  ))
+)}
           </div>
         </div>
 
