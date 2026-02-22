@@ -5,6 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Toaster } from 'react-hot-toast';
+import VRViewer from '../../../components/trip/VRViewer';
+import { Button } from '../../../components/ui/Button';
+
 import {
   ArrowLeft,
   Calendar,
@@ -19,6 +22,7 @@ import {
   Landmark,
   Save,
   Loader,
+  Eye
 } from 'lucide-react';
 import TransportFilter from '../../../components/trip/TransportFilter';
 import TransportSelection from '../../../components/trip/TransportSelection';
@@ -34,7 +38,10 @@ export default function TripDetailsPage() {
   const [filteredTransport, setFilteredTransport] = useState<any[]>([]);
   const [selectedSpots, setSelectedSpots] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [showVRViewer, setShowVRViewer] = useState(false);
 
+const vrDestinations = ['mumbai', 'goa', 'delhi'];
+const hasVRSupport = tripData && vrDestinations.includes(tripData.destination.toLowerCase());
 
   const generateTripPDF = (trip: any, selectedSpots: any[], selectedTransport: any[]) => {
     const doc = new jsPDF();
@@ -330,7 +337,13 @@ export default function TripDetailsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-purple-950 dark:to-pink-950 py-8">
-      <Toaster position="top-right" />
+       <Toaster position="top-right" />
+       {showVRViewer && tripData && (
+  <VRViewer
+    destination={tripData.destination}
+    onClose={() => setShowVRViewer(false)}
+  />
+)}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -347,6 +360,7 @@ export default function TripDetailsPage() {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {tripData.source} → {tripData.destination}
               </h1>
+              
               <button
                 onClick={handleSaveTrip}
                 disabled={saving}
@@ -454,13 +468,22 @@ export default function TripDetailsPage() {
 
         {/* Tourist Spots Selection */}
         {tripData.allTouristSpots?.length > 0 && (
-          <TouristSpotSelection
-            spots={tripData.allTouristSpots}
-            selectedSpots={selectedSpots}
-            onToggleSpot={handleToggleSpot}
-            maxDays={days}
-          />
-        )}
+  <TouristSpotSelection
+    spots={tripData.allTouristSpots}
+    selectedSpots={selectedSpots}
+    onToggleSpot={handleToggleSpot}
+    maxDays={days}
+  />
+)}
+{hasVRSupport && (
+  <Button
+    onClick={() => setShowVRViewer(true)}
+    className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white"
+  >
+    <Eye className="mr-2 h-4 w-4" />
+    Explore with VR
+  </Button>
+)}
 
         {/* Itinerary Display */}
         {tripData.itinerary && tripData.itinerary.length > 0 && (
@@ -477,4 +500,4 @@ export default function TripDetailsPage() {
       </div>
     </div>
   );
-}  
+}
