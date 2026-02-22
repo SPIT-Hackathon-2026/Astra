@@ -17,6 +17,8 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.3",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.575.0",
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.1",
@@ -26,6 +28,7 @@
     "razorpay": "^2.9.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-hot-toast": "^2.6.0",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.3.6"
   },

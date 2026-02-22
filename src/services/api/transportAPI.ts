@@ -22,7 +22,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
+  const a = 
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
@@ -214,9 +214,21 @@ export async function getTrainOptions(
     };
   });
 
-  console.log(`🚆 Found ${trains.length} heuristic train options`);
-  return trains;
-}
+    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+      console.log(`✅ Found ${response.data.length} real buses`);
+      
+      return response.data.map((bus: any) => ({
+        mode: 'bus' as const,
+        provider: bus.operator || bus.travels || 'Unknown',
+        price: parseFloat(bus.fare || bus.price || '500'),
+        duration: parseFloat(bus.duration || '8'),
+        departureTime: bus.departure_time || bus.dept_time || '08:00',
+        arrivalTime: bus.arrival_time || bus.arr_time || '16:00',
+        stops: parseInt(bus.stops || '3'),
+        carbonFootprint: Math.round((bus.distance || 300) * 0.068),
+        amenities: bus.amenities || ['AC', 'Charging Points'],
+      }));
+    }
 
 // ─── Flight Options ────────────────────────────────────────────────────────────
 
@@ -309,9 +321,6 @@ export async function getFlightOptions(
       distance: Math.round(distance),
     };
   });
-
-  console.log(`✈️ Found ${flights.length} heuristic flight options`);
-  return flights;
 }
 
 // ─── Bus Options ───────────────────────────────────────────────────────────────

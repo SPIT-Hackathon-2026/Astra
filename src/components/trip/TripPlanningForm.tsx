@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Calendar, Users, DollarSign, Sparkles, Loader, X } from 'lucide-react';
+import { MapPin, Calendar, Users, IndianRupee, Sparkles, Loader,X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
@@ -103,8 +103,12 @@ export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
           <div className="mb-6">
             <div className="flex gap-1.5">
               {[1, 2, 3].map((s) => (
-                <div key={s} className={`h-1.5 flex-1 rounded-full transition-all ${s <= step ? 'bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange' : 'bg-rs-sand-dark'
-                  }`} />
+                <div
+                  key={s}
+                  className={`h-2 flex-1 mx-1 rounded-full RS{
+                    s <= step ? 'bg-gradient-to-r from-blue-600 to-purple-600' : 'bg-gray-200 dark:bg-gray-700'
+                  }`}
+                />
               ))}
             </div>
           </div>
@@ -152,8 +156,14 @@ export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
                 <div className="grid md:grid-cols-2 gap-4">
                   <Input type="number" label="Budget (₹)" placeholder="50000" value={formData.budget}
                     onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                    icon={<DollarSign className="h-5 w-5" />} required min="1000" />
-                  <Input type="number" label="Travelers" value={formData.travelers}
+                    icon={<IndianRupee className="h-5 w-5" />}
+                    required
+                    min="1000"
+                  />
+                  <Input
+                    type="number"
+                    label="Number of Travelers"
+                    value={formData.travelers}
                     onChange={(e) => setFormData({ ...formData, travelers: e.target.value })}
                     icon={<Users className="h-5 w-5" />} required min="1" max="20" />
                 </div>
