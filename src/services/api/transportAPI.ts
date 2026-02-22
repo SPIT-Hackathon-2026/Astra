@@ -13,10 +13,7 @@ export interface TransportOption {
   distance?: number;
   route?: string;
   isRecommended?: boolean;
-<<<<<<< HEAD
   score?: number;
-=======
->>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
   recommendationReason?: string;
 }
 
@@ -26,7 +23,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
@@ -39,6 +36,15 @@ function calculateArrivalTime(departureTime: string, durationHours: number): str
   const arrivalHours = Math.floor(totalMinutes / 60) % 24;
   const arrivalMinutes = totalMinutes % 60;
   return `${String(arrivalHours).padStart(2, '0')}:${String(arrivalMinutes).padStart(2, '0')}`;
+}
+
+// Seasonal Price Adjustment Intelligence
+function getSeasonalMultiplier(date: string): { multiplier: number; reason: string } {
+  const month = new Date(date).getMonth();
+  if (month >= 3 && month <= 5) return { multiplier: 1.25, reason: '📈 Summer Peak Pricing' };
+  if (month >= 10 || month <= 0) return { multiplier: 1.35, reason: '🏔️ Winter Peak / Holiday Season' };
+  if (month >= 6 && month <= 8) return { multiplier: 0.85, reason: '🌧️ Monsoon Discount' };
+  return { multiplier: 1.0, reason: '✅ Standard Season Pricing' };
 }
 
 // ─── Coordinates ──────────────────────────────────────────────────────────────
@@ -200,7 +206,7 @@ export async function getTrainOptions(
     },
   ];
 
-  const trains = trainTypes.map((t, idx) => {
+  return trainTypes.map((t, idx) => {
     const dur = distance / t.speed;
     const price = distance * t.pricePerKm + 100;
     const departHour = 6 + idx * 4;
@@ -217,22 +223,7 @@ export async function getTrainOptions(
       distance: Math.round(distance),
     };
   });
-
-    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-      console.log(`✅ Found ${response.data.length} real buses`);
-      
-      return response.data.map((bus: any) => ({
-        mode: 'bus' as const,
-        provider: bus.operator || bus.travels || 'Unknown',
-        price: parseFloat(bus.fare || bus.price || '500'),
-        duration: parseFloat(bus.duration || '8'),
-        departureTime: bus.departure_time || bus.dept_time || '08:00',
-        arrivalTime: bus.arrival_time || bus.arr_time || '16:00',
-        stops: parseInt(bus.stops || '3'),
-        carbonFootprint: Math.round((bus.distance || 300) * 0.068),
-        amenities: bus.amenities || ['AC', 'Charging Points'],
-      }));
-    }
+}
 
 // ─── Flight Options ────────────────────────────────────────────────────────────
 
@@ -256,7 +247,6 @@ export async function getFlightOptions(
     return [];
   }
 
-  // Skip flights for short routes
   if (distance < 300) {
     console.log('⚠️ Distance too short for flights');
     return [];
@@ -308,7 +298,7 @@ export async function getFlightOptions(
     { name: 'Vistara', multiplier: 1.3 },
   ];
 
-  const flights = airlines.map((airline, idx) => {
+  return airlines.map((airline, idx) => {
     const dur = distance / 800 + 1;
     const price = (2500 + distance * 3) * airline.multiplier;
     const departHour = 6 + idx * 3;
@@ -335,7 +325,6 @@ export async function getBusOptions(
   distance: number,
   duration: number
 ): Promise<TransportOption[]> {
-  // Only useful for 50–600 km
   if (distance < 50 || distance > 600) return [];
 
   const busOperators = [
@@ -419,7 +408,7 @@ export async function getCarOptions(
     { name: 'Shared Cab', pricePerKm: 7, amenities: ['Budget friendly', 'AC', 'Fixed route'] },
   ];
 
-  return carTypes.map((car, idx) => ({
+  return carTypes.map((car) => ({
     mode: 'car' as const,
     provider: car.name,
     price: Math.round(distance * car.pricePerKm),
@@ -433,144 +422,34 @@ export async function getCarOptions(
   }));
 }
 
-<<<<<<< HEAD
-// Get bike rental options
+// ─── Bike Options ──────────────────────────────────────────────────────────────
+
 export async function getBikeOptions(
   distance: number
 ): Promise<TransportOption[]> {
-  // Only show bikes for short distances (< 100km)
   if (distance > 100) return [];
 
   const bikeOptions = [
-    { name: 'Royal Enfield (Rental)', pricePerDay: 1500, mode: 'bike' as const },
-    { name: 'Activa/Scoota (Rental)', pricePerDay: 500, mode: 'bike' as const },
-    { name: 'Electric Bike (Rental)', pricePerDay: 800, mode: 'bike' as const }
+    { name: 'Royal Enfield (Rental)', pricePerDay: 1500 },
+    { name: 'Activa/Scooty (Rental)', pricePerDay: 500 },
+    { name: 'Electric Bike (Rental)', pricePerDay: 800 },
   ];
 
   return bikeOptions.map(bike => ({
-    mode: 'bike', // Corrected mode
+    mode: 'bike' as const,
     provider: bike.name,
-    price: bike.pricePerDay, // Per day base
-    duration: parseFloat((distance / 45).toFixed(2)), // Avg 45km/h for rentals
+    price: bike.pricePerDay,
+    duration: parseFloat((distance / 45).toFixed(2)),
     departureTime: 'Flexible Rental',
     arrivalTime: 'Self-picked',
     carbonFootprint: bike.name.includes('Electric') ? Math.round(distance * 0.01) : Math.round(distance * 0.05),
     amenities: ['Helmet included', 'Unlimited KMs', 'Flexible return', 'Roadside assistance'],
-    distance: Math.round(distance)
+    distance: Math.round(distance),
   }));
 }
 
-// Seasonal Price Adjustment Intelligence
-function getSeasonalMultiplier(date: string): { multiplier: number; reason: string } {
-  const month = new Date(date).getMonth();
-  // Summer (April-June) and Winter (Nov-Jan) are peak in India
-  if (month >= 3 && month <= 5) return { multiplier: 1.25, reason: '📈 Summer Peak Pricing' };
-  if (month >= 10 || month <= 0) return { multiplier: 1.35, reason: '🏔️ Winter Peak / Holiday Season' };
-  if (month >= 6 && month <= 8) return { multiplier: 0.85, reason: '🌧️ Monsoon Discount' };
-  return { multiplier: 1.0, reason: '✅ Standard Season Pricing' };
-}
-
-// MAIN FUNCTION: Get all transport options
-=======
-// ─── MAIN: Get All Transport Options ──────────────────────────────────────────
-
->>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
-export async function getAllTransportOptions(
-  source: string,
-  destination: string,
-  date: string
-): Promise<TransportOption[]> {
-  try {
-    console.log(`\n🚗 Fetching ALL transport options: ${source} → ${destination}`);
-
-<<<<<<< HEAD
-    const seasonal = getSeasonalMultiplier(date);
-
-    // Step 1: Get coordinates
-    const [sourceCoords, destCoords] = await Promise.all([
-      getCityCoordinates(source),
-      getCityCoordinates(destination)
-    ]);
-=======
-    const sourceCoords = await getCityCoordinates(source);
-    const destCoords = await getCityCoordinates(destination);
->>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
-
-    if (!sourceCoords || !destCoords) {
-      console.log('❌ Could not get coordinates');
-      return [];
-    }
-
-    const distance = calculateDistance(
-      sourceCoords.lat, sourceCoords.lon,
-      destCoords.lat, destCoords.lon
-    );
-    console.log(`📏 Distance: ${distance.toFixed(2)} km`);
-
-<<<<<<< HEAD
-    let distance: number;
-    let carDuration: number;
-
-    if (routeDetails) {
-      distance = routeDetails.distance;
-      carDuration = routeDetails.duration;
-    } else {
-      distance = calculateDistance(sourceCoords.lat, sourceCoords.lon, destCoords.lat, destCoords.lon);
-      carDuration = distance / 60;
-    }
-
-    // Step 3: Fetch all transport options in parallel
-    const [flights, trains, buses, metro, cars, bikes] = await Promise.all([
-=======
-    // Get route for car duration
-    const routeDetails = await getRouteDetails(
-      sourceCoords.lat, sourceCoords.lon,
-      destCoords.lat, destCoords.lon
-    );
-    const carDuration = routeDetails?.duration || distance / 60;
-
-    // Fetch all modes in parallel
-    console.log('\n📊 Fetching transport modes...');
-    const [flights, trains, buses, metro, cars] = await Promise.all([
->>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
-      getFlightOptions(source, destination, distance),
-      getTrainOptions(source, destination, distance, carDuration),
-      getBusOptions(source, destination, distance, carDuration),
-      getMetroOptions(source, destination, distance),
-      getCarOptions(distance, carDuration),
-<<<<<<< HEAD
-      getBikeOptions(distance)
-    ]);
-
-    // Apply Seasonal Logic to all prices
-    const allOptions = [...flights, ...trains, ...buses, ...metro, ...cars, ...bikes].map(opt => ({
-      ...opt,
-      price: Math.round(opt.price * seasonal.multiplier),
-      recommendationReason: opt.recommendationReason ? `${opt.recommendationReason} • ${seasonal.reason}` : seasonal.reason
-    }));
-
-    // Add recommendations
-=======
-    ]);
-
-    const allOptions = [...flights, ...trains, ...buses, ...metro, ...cars];
->>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
-    const optionsWithRecommendations = addRecommendations(allOptions);
-
-    console.log(`\n✅ TOTAL: ${optionsWithRecommendations.length} transport options found\n`);
-    return optionsWithRecommendations;
-  } catch (error: any) {
-    console.error('❌ Error in getAllTransportOptions:', error.message);
-    return [];
-  }
-}
-
-<<<<<<< HEAD
-// Calculate recommendation score and add reasons
-=======
 // ─── Recommendations ───────────────────────────────────────────────────────────
 
->>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
 export function addRecommendations(options: TransportOption[]): TransportOption[] {
   if (options.length === 0) return options;
 
@@ -583,60 +462,6 @@ export function addRecommendations(options: TransportOption[]): TransportOption[
     let score = 0;
     const reasons: string[] = [];
 
-<<<<<<< HEAD
-    // 1. Price factor (30% weight)
-    const minPrice = Math.min(...options.map(o => o.price));
-    const maxPrice = Math.max(...options.map(o => o.price));
-    const priceScore = 1 - (option.price - minPrice) / (maxPrice - minPrice || 1);
-    score += priceScore * 0.3;
-
-    if (option.price <= minPrice * 1.2) reasons.push('💰 Best value');
-
-    // 2. Duration factor (30% weight)
-    const minDuration = Math.min(...options.map(o => o.duration));
-    const maxDuration = Math.max(...options.map(o => o.duration));
-    const durationScore = 1 - (option.duration - minDuration) / (maxDuration - minDuration || 1);
-    score += durationScore * 0.3;
-
-    if (option.duration <= minDuration * 1.2) reasons.push('⚡ Fast');
-
-    // 3. Convenience Factor (20% weight)
-    let convenience = 0.5;
-    if (option.mode === 'car') convenience = 0.9; // Door to door
-    if (option.mode === 'flight') convenience = 0.8; // High end
-    if (option.mode === 'train') convenience = 0.7;
-    if (option.mode === 'bike') convenience = 0.6; // High effort but flexible
-    score += convenience * 0.2;
-
-    if (convenience >= 0.8) reasons.push('🛋️ High Convenience');
-
-    // 4. Eco-friendly (20% weight)
-    if (option.carbonFootprint) {
-      const minCarbon = Math.min(...options.filter(o => o.carbonFootprint).map(o => o.carbonFootprint!));
-      const carbonScore = option.carbonFootprint === 0 ? 1 : Math.min(1, minCarbon / option.carbonFootprint);
-      score += carbonScore * 0.2;
-      if (carbonScore > 0.8) reasons.push('🌱 Low Carbon');
-    }
-
-    return {
-      ...option,
-      score,
-      recommendationReason: [option.recommendationReason, ...reasons].filter(Boolean).join(' • '),
-    };
-  });
-
-  // Sort and pick top
-  scoredOptions.sort((a, b) => (b.score || 0) - (a.score || 0));
-  scoredOptions[0].isRecommended = true;
-  scoredOptions[0].recommendationReason = '🏆 RECOMMENDED: ' + scoredOptions[0].recommendationReason;
-
-  if (scoredOptions[1]) {
-    scoredOptions[1].isRecommended = true;
-    scoredOptions[1].recommendationReason = '⭐ TOP ALTERNATIVE: ' + scoredOptions[1].recommendationReason;
-  }
-
-  return scoredOptions;
-=======
     // Price (30%)
     const priceScore = 1 - (option.price - minPrice) / (maxPrice - minPrice || 1);
     score += priceScore * 0.3;
@@ -654,7 +479,7 @@ export function addRecommendations(options: TransportOption[]): TransportOption[
     }
 
     // Comfort (20%)
-    const comfort: Record<string, number> = { flight: 0.9, train: 0.7, bus: 0.6, metro: 0.8, car: 0.75 };
+    const comfort: Record<string, number> = { flight: 0.9, train: 0.7, bus: 0.6, metro: 0.8, car: 0.75, bike: 0.5 };
     score += (comfort[option.mode] || 0.5) * 0.2;
 
     if (option.mode === 'train' && (option.stops || 0) < 3) reasons.push('🚆 Few stops');
@@ -674,5 +499,70 @@ export function addRecommendations(options: TransportOption[]): TransportOption[
   }
 
   return scored;
->>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
+}
+
+// ─── MAIN: Get All Transport Options ──────────────────────────────────────────
+
+export async function getAllTransportOptions(
+  source: string,
+  destination: string,
+  date: string
+): Promise<TransportOption[]> {
+  try {
+    console.log(`\n🚗 Fetching ALL transport options: ${source} → ${destination}`);
+
+    const seasonal = getSeasonalMultiplier(date);
+
+    // Step 1: Get coordinates in parallel
+    const [sourceCoords, destCoords] = await Promise.all([
+      getCityCoordinates(source),
+      getCityCoordinates(destination),
+    ]);
+
+    if (!sourceCoords || !destCoords) {
+      console.log('❌ Could not get coordinates');
+      return [];
+    }
+
+    // Step 2: Get route details for accurate distance & car duration
+    const routeDetails = await getRouteDetails(
+      sourceCoords.lat, sourceCoords.lon,
+      destCoords.lat, destCoords.lon
+    );
+
+    const distance = routeDetails?.distance ||
+      calculateDistance(sourceCoords.lat, sourceCoords.lon, destCoords.lat, destCoords.lon);
+    const carDuration = routeDetails?.duration || distance / 60;
+
+    console.log(`📏 Distance: ${distance.toFixed(2)} km`);
+
+    // Step 3: Fetch all transport options in parallel
+    console.log('\n📊 Fetching transport modes...');
+    const [flights, trains, buses, metro, cars, bikes] = await Promise.all([
+      getFlightOptions(source, destination, distance),
+      getTrainOptions(source, destination, distance, carDuration),
+      getBusOptions(source, destination, distance, carDuration),
+      getMetroOptions(source, destination, distance),
+      getCarOptions(distance, carDuration),
+      getBikeOptions(distance),
+    ]);
+
+    // Step 4: Apply seasonal pricing
+    const allOptions = [...flights, ...trains, ...buses, ...metro, ...cars, ...bikes].map(opt => ({
+      ...opt,
+      price: Math.round(opt.price * seasonal.multiplier),
+      recommendationReason: opt.recommendationReason
+        ? `${opt.recommendationReason} • ${seasonal.reason}`
+        : seasonal.reason,
+    }));
+
+    // Step 5: Add recommendations
+    const optionsWithRecommendations = addRecommendations(allOptions);
+
+    console.log(`\n✅ TOTAL: ${optionsWithRecommendations.length} transport options found\n`);
+    return optionsWithRecommendations;
+  } catch (error: any) {
+    console.error('❌ Error in getAllTransportOptions:', error.message);
+    return [];
+  }
 }

@@ -36,19 +36,27 @@ export default function TouristSpotSelection({
 }: Props) {
   const [filter, setFilter] = useState<'all' | 'popular'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'popularity' | 'rating' | 'time' | 'fee'>('popularity');
 
   const popularSpots = spots.filter(s => s.isPopular);
-  const regularSpots = spots.filter(s => !s.isPopular);
 
   const displaySpots = filter === 'popular' ? popularSpots : spots;
 
   // Get unique categories
   const categories = ['all', ...Array.from(new Set(spots.map(s => s.category)))];
 
+  const sortedSpots = [...displaySpots].sort((a, b) => {
+    if (sortBy === 'popularity') return (b.popularity || 0) - (a.popularity || 0);
+    if (sortBy === 'rating') return b.rating - a.rating;
+    if (sortBy === 'time') return b.estimatedTime - a.estimatedTime;
+    if (sortBy === 'fee') return a.entryFee - b.entryFee; // free first
+    return 0;
+  });
+
   const filteredSpots =
     categoryFilter === 'all'
-      ? displaySpots
-      : displaySpots.filter(s => s.category === categoryFilter);
+      ? sortedSpots
+      : sortedSpots.filter(s => s.category === categoryFilter);
 
   const isSelected = (spotName: string) => selectedSpots.includes(spotName);
 
@@ -102,9 +110,8 @@ export default function TouristSpotSelection({
         <div className="bg-orange-50 rounded-lg p-4">
           <p className="text-orange-600 text-sm font-medium">Trip Days</p>
           <p className="text-2xl font-bold text-orange-900">{maxDays}</p>
-          <p className={`text-xs mt-1 ${
-            estimatedDaysNeeded > maxDays ? 'text-red-600 font-semibold' : 'text-orange-700'
-          }`}>
+          <p className={`text-xs mt-1 ${estimatedDaysNeeded > maxDays ? 'text-red-600 font-semibold' : 'text-orange-700'
+            }`}>
             {estimatedDaysNeeded > maxDays
               ? `⚠️ Reduce ${estimatedDaysNeeded - maxDays} days of spots`
               : '✓ Fits in schedule'}
@@ -112,43 +119,54 @@ export default function TouristSpotSelection({
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      {/* Filters & Sort */}
+      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <div className="flex gap-2">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
-              filter === 'all'
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition ${filter === 'all'
                 ? 'bg-[var(--rs-terracotta)] text-white'
                 : 'bg-[var(--rs-sand)] text-[var(--rs-deep-brown)] hover:bg-[var(--rs-sand-dark)]'
-            }`}
+              }`}
           >
             All Spots ({spots.length})
           </button>
           <button
             onClick={() => setFilter('popular')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition flex items-center gap-1 ${
-              filter === 'popular'
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition flex items-center gap-1 ${filter === 'popular'
                 ? 'bg-yellow-500 text-white'
                 : 'bg-[var(--rs-sand)] text-[var(--rs-deep-brown)] hover:bg-[var(--rs-sand-dark)]'
-            }`}
+              }`}
           >
             <Star className="w-4 h-4" />
             Popular ({popularSpots.length})
           </button>
         </div>
 
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-4 py-2 border border-[var(--rs-sand-dark)] rounded-lg focus:ring-2 focus:ring-[var(--rs-terracotta)]"
-        >
-          {categories.map(cat => (
-            <option key={cat} value={cat}>
-              {cat === 'all' ? 'All Categories' : cat.replace(/_/g, ' ')}
-            </option>
-          ))}
-        </select>
+        <div className="flex gap-2 flex-wrap">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="px-4 py-2 border border-[var(--rs-sand-dark)] rounded-lg focus:ring-2 focus:ring-[var(--rs-terracotta)] text-sm"
+          >
+            {categories.map(cat => (
+              <option key={cat} value={cat}>
+                {cat === 'all' ? 'All Categories' : cat.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="px-4 py-2 border border-[var(--rs-sand-dark)] rounded-lg focus:ring-2 focus:ring-[var(--rs-terracotta)] text-sm"
+          >
+            <option value="popularity">⭐ Most Popular</option>
+            <option value="rating">🌟 Highest Rated</option>
+            <option value="time">⏱ Longest Visit</option>
+            <option value="fee">🆓 Free First</option>
+          </select>
+        </div>
       </div>
 
       {/* Spots Grid */}
@@ -185,11 +203,10 @@ function SpotCard({
   return (
     <div
       onClick={onToggle}
-      className={`relative bg-white rounded-xl border-2 overflow-hidden cursor-pointer transition hover:shadow-lg ${
-        isSelected
+      className={`relative bg-white rounded-xl border-2 overflow-hidden cursor-pointer transition hover:shadow-lg ${isSelected
           ? 'border-[var(--rs-terracotta)] ring-4 ring-blue-100'
           : 'border-[var(--rs-sand-dark)] hover:border-[var(--rs-terracotta-light)]'
-      }`}
+        }`}
     >
       {/* Popular Badge */}
       {spot.isPopular && (
@@ -282,11 +299,10 @@ function SpotCard({
       {/* Select Button */}
       <div className="px-4 pb-4">
         <button
-          className={`w-full py-2 rounded-lg font-medium text-sm transition ${
-            isSelected
+          className={`w-full py-2 rounded-lg font-medium text-sm transition ${isSelected
               ? 'bg-[var(--rs-terracotta)] text-white'
               : 'bg-[var(--rs-sand)] text-[var(--rs-deep-brown)] hover:bg-[var(--rs-sand-dark)]'
-          }`}
+            }`}
         >
           {isSelected ? '✓ Selected' : 'Select Spot'}
         </button>

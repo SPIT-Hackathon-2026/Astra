@@ -2,11 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-<<<<<<< HEAD
 import { MapPin, Calendar, Users, IndianRupee, Sparkles, Loader, X } from 'lucide-react';
-=======
-import { MapPin, Calendar, Users, IndianRupee, Sparkles, Loader,X } from 'lucide-react';
->>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
@@ -52,7 +48,7 @@ export const TripPlanningForm = ({ onClose, initialData }: TripPlanningFormProps
     e.preventDefault();
     setIsLoading(true);
     setError('');
-  
+
     try {
       const response = await fetch('/api/trips/plan', {
         method: 'POST',
@@ -70,7 +66,7 @@ export const TripPlanningForm = ({ onClose, initialData }: TripPlanningFormProps
           interests: formData.interests,
         }),
       });
-  
+
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.error || 'Failed to plan trip');
@@ -165,19 +161,8 @@ export const TripPlanningForm = ({ onClose, initialData }: TripPlanningFormProps
                 <div className="grid md:grid-cols-2 gap-4">
                   <Input type="number" label="Budget (₹)" placeholder="50000" value={formData.budget}
                     onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-<<<<<<< HEAD
                     icon={<IndianRupee className="h-5 w-5" />} required min="1000" />
-                  <Input type="number" label="Travelers" value={formData.travelers}
-=======
-                    icon={<IndianRupee className="h-5 w-5" />}
-                    required
-                    min="1000"
-                  />
-                  <Input
-                    type="number"
-                    label="Number of Travelers"
-                    value={formData.travelers}
->>>>>>> 02dd206811b6adb7b1de1221ba26aadd3c3f4905
+                  <Input type="number" label="Number of Travelers" value={formData.travelers}
                     onChange={(e) => setFormData({ ...formData, travelers: e.target.value })}
                     icon={<Users className="h-5 w-5" />} required min="1" max="20" />
                 </div>
