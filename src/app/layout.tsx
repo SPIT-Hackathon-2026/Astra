@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Luckiest_Guy, Fredoka } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
+import { FloatingChatbot } from '../components/layout/FloatingChatbot';
 
 const fredoka = Fredoka({ 
   subsets: ['latin'],
@@ -29,7 +30,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`scroll-smooth ${fredoka.variable} ${luckiestGuy.variable}`}>
       <body className={fredoka.className} style={{ fontFamily: 'Fredoka, Arial, sans-serif' }}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <FloatingChatbot />
+        </Providers>
       </body>
     </html>
   );

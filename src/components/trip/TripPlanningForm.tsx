@@ -2,29 +2,32 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Calendar, Users, DollarSign, Sparkles, Loader, X } from 'lucide-react';
+import { MapPin, Calendar, Users, IndianRupee, Sparkles, Loader, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 
 interface TripPlanningFormProps {
   onClose: () => void;
+  initialData?: any;
 }
 
-export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
+export const TripPlanningForm = ({ onClose, initialData }: TripPlanningFormProps) => {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // Always start at Step 1 to let user review auto-filled data
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
-    source: '',
-    destination: '',
-    startDate: '',
-    endDate: '',
-    budget: '',
-    travelers: '1',
-    budgetType: 'moderate',
-    interests: [] as string[],
+    source: initialData?.source || '',
+    destination: initialData?.destination || '',
+    startDate: initialData?.startDate || '',
+    endDate: initialData?.endDate || '',
+    budget: initialData?.budget || '',
+    travelers: initialData?.travelers || '1',
+    tripType: initialData?.tripType || 'solo',
+    budgetType: initialData?.budgetType || 'moderate',
+    interests: initialData?.interests || [] as string[],
+    travelerContacts: initialData?.travelerContacts || [] as string[],
   });
 
   const interestOptions = [
@@ -36,7 +39,7 @@ export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
     setFormData(prev => ({
       ...prev,
       interests: prev.interests.includes(interest)
-        ? prev.interests.filter(i => i !== interest)
+        ? prev.interests.filter((i: string) => i !== interest)
         : [...prev.interests, interest]
     }));
   };
@@ -57,6 +60,8 @@ export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
           endDate: formData.endDate,
           budget: Number(formData.budget),
           travelers: Number(formData.travelers),
+          tripType: formData.tripType,
+          travelerContacts: formData.travelerContacts,
           budgetType: formData.budgetType,
           interests: formData.interests,
         }),
@@ -151,11 +156,57 @@ export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
                 <div className="grid md:grid-cols-2 gap-4">
                   <Input type="number" label="Budget (₹)" placeholder="50000" value={formData.budget}
                     onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                    icon={<DollarSign className="h-5 w-5" />} required min="1000" />
+                    icon={<IndianRupee className="h-5 w-5" />} required min="1000" />
                   <Input type="number" label="Travelers" value={formData.travelers}
                     onChange={(e) => setFormData({ ...formData, travelers: e.target.value })}
                     icon={<Users className="h-5 w-5" />} required min="1" max="20" />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-rs-deep-brown mb-3">Trip Type</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: 'solo', emoji: '🧘', label: 'Solo' },
+                      { id: 'family', emoji: '👨‍👩‍👧‍👦', label: 'Family' },
+                      { id: 'group', emoji: '🎉', label: 'Group' },
+                    ].map((type) => (
+                      <button key={type.id} type="button" onClick={() => setFormData({ ...formData, tripType: type.id })}
+                        className={`p-3 rounded-xl border-2 transition-all ${formData.tripType === type.id
+                          ? 'border-rs-sunset-orange bg-rs-sunset-orange/10'
+                          : 'border-rs-sand-dark hover:border-rs-sunset-orange/30'
+                          }`}>
+                        <div className="text-center">
+                          <div className="text-xl mb-0.5">{type.emoji}</div>
+                          <div className="font-bold text-rs-deep-brown text-xs">{type.label}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Traveler Contacts Review */}
+                {formData.travelerContacts.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-semibold text-rs-deep-brown mb-2">Group Contacts (Auto-Filled)</label>
+                    <div className="space-y-2">
+                      {formData.travelerContacts.map((contact: string, idx: number) => (
+                        <div key={idx} className="flex gap-2">
+                          <Input
+                            placeholder="Mobile Number"
+                            value={contact}
+                            onChange={(e) => {
+                              const newContacts = [...formData.travelerContacts];
+                              newContacts[idx] = e.target.value;
+                              setFormData({ ...formData, travelerContacts: newContacts });
+                            }}
+                            className="flex-1"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-semibold text-rs-deep-brown mb-3">Budget Type</label>
                   <div className="grid grid-cols-3 gap-3">
@@ -166,8 +217,8 @@ export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
                     ].map((type) => (
                       <button key={type.id} type="button" onClick={() => setFormData({ ...formData, budgetType: type.id })}
                         className={`p-4 rounded-xl border-2 transition-all ${formData.budgetType === type.id
-                            ? 'border-rs-terracotta bg-rs-terracotta/10'
-                            : 'border-rs-sand-dark hover:border-rs-terracotta-light'
+                          ? 'border-rs-terracotta bg-rs-terracotta/10'
+                          : 'border-rs-sand-dark hover:border-rs-terracotta-light'
                           }`}>
                         <div className="text-center">
                           <div className="text-2xl mb-1">{type.emoji}</div>
@@ -192,15 +243,18 @@ export const TripPlanningForm = ({ onClose }: TripPlanningFormProps) => {
                 <div>
                   <label className="block text-sm font-semibold text-rs-deep-brown mb-3">What interests you? (Optional)</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {interestOptions.map((interest) => (
-                      <button key={interest} type="button" onClick={() => handleInterestToggle(interest)}
-                        className={`p-2.5 rounded-lg border-2 text-sm font-medium transition-all ${formData.interests.includes(interest)
+                    {interestOptions.map((interest) => {
+                      const isSelected = formData.interests.some((i: string) => i.toLowerCase().includes(interest.toLowerCase()) || interest.toLowerCase().includes(i.toLowerCase()));
+                      return (
+                        <button key={interest} type="button" onClick={() => handleInterestToggle(interest)}
+                          className={`p-2.5 rounded-lg border-2 text-sm font-medium transition-all ${isSelected
                             ? 'border-rs-sunset-orange bg-rs-sunset-orange/10 text-rs-terracotta-dark'
                             : 'border-rs-sand-dark text-rs-desert-brown hover:border-rs-sunset-orange'
-                          }`}>
-                        {interest}
-                      </button>
-                    ))}
+                            }`}>
+                          {interest}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="bg-gradient-to-r from-rs-terracotta/10 to-rs-sunset-orange/10 p-5 rounded-xl border border-rs-terracotta/20">

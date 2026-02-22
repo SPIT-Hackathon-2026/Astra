@@ -22,6 +22,7 @@ import {
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { TripPlanningForm } from '../../components/trip/TripPlanningForm';
+import { VoicePlanModal } from '../../components/trip/VoicePlanModal';
 import { Luckiest_Guy } from 'next/font/google';
 
 const luckiestGuy = Luckiest_Guy({
@@ -29,21 +30,38 @@ const luckiestGuy = Luckiest_Guy({
   subsets: ['latin'],
 });
 
+import { useSearchParams } from 'next/navigation';
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [greeting, setGreeting] = useState('');
   const [showTripForm, setShowTripForm] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [initialFormData, setInitialFormData] = useState<any>(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
+    if (searchParams.get('plan') === 'true') {
+      fetch('/api/chat/context')
+        .then(res => res.json())
+        .then(data => {
+          setInitialFormData(data);
+          setShowTripForm(true);
+        })
+        .catch(() => {
+          setShowTripForm(true);
+        });
     }
+
+    /* if (status === 'unauthenticated') {
+       router.push('/login');
+     }*/
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good morning');
     else if (hour < 18) setGreeting('Good afternoon');
     else setGreeting('Good evening');
-  }, [status, router]);
+  }, [status, router, searchParams]);
 
   if (status === 'loading') {
     return (
@@ -154,16 +172,24 @@ export default function DashboardPage() {
                 <p className="text-white/60 text-sm sm:text-base">Use voice or text to create your perfect route</p>
               </div>
               <div className="flex gap-3 w-full sm:w-auto">
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   className="flex-1 sm:flex-none bg-gradient-to-r from-rs-terracotta to-rs-sunset-orange shadow-md"
                   onClick={() => setShowTripForm(true)}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Create long trip
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="primary"
+                  className="flex-1 sm:flex-none bg-rs-deep-brown shadow-md"
+                  onClick={() => setShowVoiceModal(true)}
+                >
+                  <Mic className="mr-2 h-4 w-4" />
+                  Voice Plan
+                </Button>
+                <Button
+                  variant="outline"
                   className="flex-1 sm:flex-none border-white/30 text-white hover:bg-white/10"
                   onClick={() => router.push('/plan')}
                 >
@@ -266,9 +292,20 @@ export default function DashboardPage() {
 
       {/* Trip Planning Modal */}
       {showTripForm && (
-        <TripPlanningForm onClose={() => setShowTripForm(false)} />
+        <TripPlanningForm
+          onClose={() => setShowTripForm(false)}
+          initialData={initialFormData}
+        />
       )}
-      
+
+      {showVoiceModal && (
+        <VoicePlanModal
+          onClose={() => setShowVoiceModal(false)}
+          onSuccess={() => {
+            // Optional: refresh trip list logic if implemented
+          }}
+        />
+      )}
     </div>
   );
 }

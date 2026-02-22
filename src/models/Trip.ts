@@ -7,7 +7,9 @@ export interface ITrip extends Document {
   startDate: Date;
   endDate: Date;
   travelers: number;
-  
+  tripType: 'solo' | 'family' | 'group' | string;
+  travelerContacts: string[];
+
   // Transport options
   transportOptions: {
     mode: string;
@@ -23,14 +25,14 @@ export interface ITrip extends Document {
     isRecommended?: boolean;
     recommendationReason?: string;
   }[];
-  
+
   selectedTransport?: {
     mode: string;
     provider: string;
     price: number;
     duration: number;
   };
-  
+
   // Tourist spots
   allTouristSpots: {
     name: string;
@@ -49,9 +51,9 @@ export interface ITrip extends Document {
     isPopular?: boolean;
     popularity?: number;
   }[];
-  
+
   selectedTouristSpots: string[]; // Array of spot names
-  
+
   // Itinerary
   itinerary: {
     day: number;
@@ -66,7 +68,7 @@ export interface ITrip extends Document {
     totalHours: number;
     warnings?: string[];
   }[];
-  
+
   // Costs
   costs: {
     transport: number;
@@ -75,13 +77,30 @@ export interface ITrip extends Document {
     attractions: number;
     total: number;
   };
-  
+
   preferences: {
     budgetType?: string;
     interests?: string[];
     maxHoursPerDay?: number;
   };
-  
+
+  accommodationOptions: {
+    type: 'hotel' | 'airbnb' | 'hostel';
+    name: string;
+    pricePerNight: number;
+    rating: number;
+    amenities: string[];
+    description: string;
+    isRecommended?: boolean;
+    recommendationReason?: string;
+  }[];
+
+  selectedAccommodation?: {
+    name: string;
+    type: string;
+    pricePerNight: number;
+  };
+
   status: 'planning' | 'confirmed' | 'completed' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
@@ -113,6 +132,12 @@ const TripSchema: Schema = new Schema({
     type: Number,
     default: 1,
   },
+  tripType: {
+    type: String,
+    enum: ['solo', 'family', 'group', null],
+    default: null,
+  },
+  travelerContacts: [String],
   transportOptions: [{
     mode: String,
     provider: String,
@@ -170,6 +195,21 @@ const TripSchema: Schema = new Schema({
     food: { type: Number, default: 0 },
     attractions: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
+  },
+  accommodationOptions: [{
+    type: { type: String, enum: ['hotel', 'airbnb', 'hostel'] },
+    name: String,
+    pricePerNight: Number,
+    rating: Number,
+    amenities: [String],
+    description: String,
+    isRecommended: Boolean,
+    recommendationReason: String,
+  }],
+  selectedAccommodation: {
+    name: String,
+    type: String,
+    pricePerNight: Number,
   },
   preferences: {
     budgetType: String,

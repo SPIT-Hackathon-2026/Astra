@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export interface TransportOption {
-  mode: 'flight' | 'train' | 'bus' | 'metro' | 'car';
+  mode: 'flight' | 'train' | 'bus' | 'metro' | 'car' | 'bike';
   provider: string;
   price: number;
   duration: number; // in hours
@@ -13,6 +13,8 @@ export interface TransportOption {
   distance?: number;
   route?: string;
   isRecommended?: boolean;
+  score?: number;
+  recommendationReason?: string;
 }
 
 // Calculate distance using Haversine formula
@@ -510,6 +512,42 @@ export async function getCarOptions(
   return cars;
 }
 
+// Get bike rental options
+export async function getBikeOptions(
+  distance: number
+): Promise<TransportOption[]> {
+  // Only show bikes for short distances (< 100km)
+  if (distance > 100) return [];
+
+  const bikeOptions = [
+    { name: 'Royal Enfield (Rental)', pricePerDay: 1500, mode: 'bike' as const },
+    { name: 'Activa/Scoota (Rental)', pricePerDay: 500, mode: 'bike' as const },
+    { name: 'Electric Bike (Rental)', pricePerDay: 800, mode: 'bike' as const }
+  ];
+
+  return bikeOptions.map(bike => ({
+    mode: 'bike', // Corrected mode
+    provider: bike.name,
+    price: bike.pricePerDay, // Per day base
+    duration: parseFloat((distance / 45).toFixed(2)), // Avg 45km/h for rentals
+    departureTime: 'Flexible Rental',
+    arrivalTime: 'Self-picked',
+    carbonFootprint: bike.name.includes('Electric') ? Math.round(distance * 0.01) : Math.round(distance * 0.05),
+    amenities: ['Helmet included', 'Unlimited KMs', 'Flexible return', 'Roadside assistance'],
+    distance: Math.round(distance)
+  }));
+}
+
+// Seasonal Price Adjustment Intelligence
+function getSeasonalMultiplier(date: string): { multiplier: number; reason: string } {
+  const month = new Date(date).getMonth();
+  // Summer (April-June) and Winter (Nov-Jan) are peak in India
+  if (month >= 3 && month <= 5) return { multiplier: 1.25, reason: '📈 Summer Peak Pricing' };
+  if (month >= 10 || month <= 0) return { multiplier: 1.35, reason: '🏔️ Winter Peak / Holiday Season' };
+  if (month >= 6 && month <= 8) return { multiplier: 0.85, reason: '🌧️ Monsoon Discount' };
+  return { multiplier: 1.0, reason: '✅ Standard Season Pricing' };
+}
+
 // MAIN FUNCTION: Get all transport options
 export async function getAllTransportOptions(
   source: string,
@@ -520,6 +558,8 @@ export async function getAllTransportOptions(
     console.log(`\n🚀 === FETCHING TRANSPORT OPTIONS ===`);
     console.log(`Route: ${source} → ${destination}`);
     console.log(`Date: ${date}`);
+
+    const seasonal = getSeasonalMultiplier(date);
 
     // Step 1: Get coordinates
     const [sourceCoords, destCoords] = await Promise.all([
@@ -547,32 +587,27 @@ export async function getAllTransportOptions(
     if (routeDetails) {
       distance = routeDetails.distance;
       carDuration = routeDetails.duration;
-      console.log(`✅ Route found: ${distance.toFixed(0)} km, ${carDuration.toFixed(1)} hours by car`);
     } else {
-      // Fallback to straight-line distance
-      distance = calculateDistance(
-        sourceCoords.lat,
-        sourceCoords.lon,
-        destCoords.lat,
-        destCoords.lon
-      );
+      distance = calculateDistance(sourceCoords.lat, sourceCoords.lon, destCoords.lat, destCoords.lon);
       carDuration = distance / 60;
-      console.log(`⚠️ Using straight-line distance: ${distance.toFixed(0)} km`);
     }
 
     // Step 3: Fetch all transport options in parallel
-    console.log(`\n📊 Fetching transport modes...`);
-
-    const [flights, trains, buses, metro, cars] = await Promise.all([
+    const [flights, trains, buses, metro, cars, bikes] = await Promise.all([
       getFlightOptions(source, destination, distance),
       getTrainOptions(source, destination, distance, carDuration),
       getBusOptions(source, destination, distance, carDuration),
       getMetroOptions(source, destination, distance),
-      getCarOptions(distance, carDuration)
+      getCarOptions(distance, carDuration),
+      getBikeOptions(distance)
     ]);
 
-    // At the end of getAllTransportOptions, before return:
-    const allOptions = [...flights, ...trains, ...buses, ...metro, ...cars];
+    // Apply Seasonal Logic to all prices
+    const allOptions = [...flights, ...trains, ...buses, ...metro, ...cars, ...bikes].map(opt => ({
+      ...opt,
+      price: Math.round(opt.price * seasonal.multiplier),
+      recommendationReason: opt.recommendationReason ? `${opt.recommendationReason} • ${seasonal.reason}` : seasonal.reason
+    }));
 
     // Add recommendations
     const optionsWithRecommendations = addRecommendations(allOptions);
@@ -586,6 +621,7 @@ export async function getAllTransportOptions(
     return [];
   }
 }
+
 // Calculate recommendation score and add reasons
 export function addRecommendations(options: TransportOption[]): TransportOption[] {
   if (options.length === 0) return options;
@@ -595,89 +631,55 @@ export function addRecommendations(options: TransportOption[]): TransportOption[
     let score = 0;
     let reasons: string[] = [];
 
-    // Price factor (lower is better)
+    // 1. Price factor (30% weight)
     const minPrice = Math.min(...options.map(o => o.price));
     const maxPrice = Math.max(...options.map(o => o.price));
     const priceScore = 1 - (option.price - minPrice) / (maxPrice - minPrice || 1);
-    score += priceScore * 0.3; // 30% weight
+    score += priceScore * 0.3;
 
-    if (option.price <= minPrice * 1.2) {
-      reasons.push('💰 Best value for money');
-    }
+    if (option.price <= minPrice * 1.2) reasons.push('💰 Best value');
 
-    // Duration factor (shorter is better)
+    // 2. Duration factor (30% weight)
     const minDuration = Math.min(...options.map(o => o.duration));
     const maxDuration = Math.max(...options.map(o => o.duration));
     const durationScore = 1 - (option.duration - minDuration) / (maxDuration - minDuration || 1);
-    score += durationScore * 0.35; // 35% weight
+    score += durationScore * 0.3;
 
-    if (option.duration <= minDuration * 1.1) {
-      reasons.push('⚡ Fastest travel time');
-    }
+    if (option.duration <= minDuration * 1.2) reasons.push('⚡ Fast');
 
-    // Carbon footprint (lower is better)
+    // 3. Convenience Factor (20% weight)
+    let convenience = 0.5;
+    if (option.mode === 'car') convenience = 0.9; // Door to door
+    if (option.mode === 'flight') convenience = 0.8; // High end
+    if (option.mode === 'train') convenience = 0.7;
+    if (option.mode === 'bike') convenience = 0.6; // High effort but flexible
+    score += convenience * 0.2;
+
+    if (convenience >= 0.8) reasons.push('🛋️ High Convenience');
+
+    // 4. Eco-friendly (20% weight)
     if (option.carbonFootprint) {
       const minCarbon = Math.min(...options.filter(o => o.carbonFootprint).map(o => o.carbonFootprint!));
-      const maxCarbon = Math.max(...options.filter(o => o.carbonFootprint).map(o => o.carbonFootprint!));
-      const carbonScore = 1 - (option.carbonFootprint - minCarbon) / (maxCarbon - minCarbon || 1);
-      score += carbonScore * 0.15; // 15% weight
-
-      if (option.carbonFootprint <= minCarbon * 1.2) {
-        reasons.push('🌱 Eco-friendly option');
-      }
-    }
-
-    // Comfort factor (based on amenities and mode)
-    let comfortScore = 0;
-    if (option.mode === 'flight') comfortScore = 0.9;
-    else if (option.mode === 'train') comfortScore = 0.7;
-    else if (option.mode === 'car') comfortScore = 0.8;
-    else if (option.mode === 'bus') comfortScore = 0.6;
-    else if (option.mode === 'metro') comfortScore = 0.75;
-
-    if (option.amenities && option.amenities.length > 3) {
-      comfortScore += 0.1;
-      reasons.push('✨ Premium amenities');
-    }
-
-    score += comfortScore * 0.2; // 20% weight
-
-    // Add mode-specific reasons
-    if (option.mode === 'train' && option.stops && option.stops < 3) {
-      reasons.push('🚆 Direct route with fewer stops');
-    }
-    if (option.mode === 'flight' && option.stops === 0) {
-      reasons.push('✈️ Non-stop flight');
-    }
-    if (option.mode === 'car') {
-      reasons.push('🚗 Flexible departure time');
-    }
-    if (option.mode === 'metro') {
-      reasons.push('🚇 No traffic delays');
+      const carbonScore = option.carbonFootprint === 0 ? 1 : Math.min(1, minCarbon / option.carbonFootprint);
+      score += carbonScore * 0.2;
+      if (carbonScore > 0.8) reasons.push('🌱 Low Carbon');
     }
 
     return {
       ...option,
       score,
-      recommendationReason: reasons.join(' • '),
+      recommendationReason: [option.recommendationReason, ...reasons].filter(Boolean).join(' • '),
     };
   });
 
-  // Sort by score
-  scoredOptions.sort((a, b) => b.score - a.score);
-
-  // Mark top 2 as recommended
+  // Sort and pick top
+  scoredOptions.sort((a, b) => (b.score || 0) - (a.score || 0));
   scoredOptions[0].isRecommended = true;
-  if (scoredOptions.length > 1) {
-    scoredOptions[1].isRecommended = true;
-  }
+  scoredOptions[0].recommendationReason = '🏆 RECOMMENDED: ' + scoredOptions[0].recommendationReason;
 
-  // Add ranking reasons
-  if (scoredOptions[0]) {
-    scoredOptions[0].recommendationReason = '🏆 Best Overall Choice - ' + scoredOptions[0].recommendationReason;
-  }
   if (scoredOptions[1]) {
-    scoredOptions[1].recommendationReason = '⭐ Great Alternative - ' + scoredOptions[1].recommendationReason;
+    scoredOptions[1].isRecommended = true;
+    scoredOptions[1].recommendationReason = '⭐ TOP ALTERNATIVE: ' + scoredOptions[1].recommendationReason;
   }
 
   return scoredOptions;
