@@ -436,7 +436,7 @@ const fetchTripDetails = async () => {
                 <p className="text-2xl font-bold text-white">₹{tripData.costs.total}</p>
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Transport Section with Filters */}
