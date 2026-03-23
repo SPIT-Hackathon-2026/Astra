@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
 export interface TransportOption {
   mode: 'flight' | 'train' | 'bus' | 'metro' | 'car';
   provider: string;
@@ -20,12 +22,14 @@ export interface TransportOption {
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -37,31 +41,27 @@ function calculateArrivalTime(departureTime: string, durationHours: number): str
   return `${String(arrivalHours).padStart(2, '0')}:${String(arrivalMinutes).padStart(2, '0')}`;
 }
 
-// ─── Coordinates ──────────────────────────────────────────────────────────────
+// ─── City Coordinates (Nominatim) ─────────────────────────────────────────────
 
 export async function getCityCoordinates(
   city: string
 ): Promise<{ lat: number; lon: number; displayName: string } | null> {
   try {
-    console.log(`🔍 Getting coordinates for: ${city}`);
     const response = await axios.get('https://nominatim.openstreetmap.org/search', {
       params: { q: `${city}, India`, format: 'json', limit: 1, addressdetails: 1 },
       headers: { 'User-Agent': 'RadiatorRoutes-TripPlanner/1.0' },
     });
     if (response.data && response.data.length > 0) {
-      const result = response.data[0];
-      console.log(`✅ Found: ${result.display_name}`);
-      return { lat: parseFloat(result.lat), lon: parseFloat(result.lon), displayName: result.display_name };
+      const r = response.data[0];
+      return { lat: parseFloat(r.lat), lon: parseFloat(r.lon), displayName: r.display_name };
     }
-    console.log(`❌ City not found: ${city}`);
     return null;
-  } catch (error) {
-    console.error('Error fetching coordinates:', error);
+  } catch {
     return null;
   }
 }
 
-// ─── Route Details ─────────────────────────────────────────────────────────────
+// ─── Route Details (OSRM) ─────────────────────────────────────────────────────
 
 export async function getRouteDetails(
   sourceLat: number,
@@ -70,50 +70,43 @@ export async function getRouteDetails(
   destLon: number,
   profile: 'car' | 'bike' = 'car'
 ): Promise<{ distance: number; duration: number; route: string } | null> {
-  // Try OpenRouteService first
   if (process.env.OPENROUTE_API_KEY) {
     try {
-      console.log('🗺️ Getting route via OpenRouteService...');
-      const response = await axios.get(
+      const res = await axios.get(
         'https://api.openrouteservice.org/v2/directions/driving-car',
         {
           params: { start: `${sourceLon},${sourceLat}`, end: `${destLon},${destLat}` },
           headers: { Authorization: process.env.OPENROUTE_API_KEY },
+          timeout: 8000,
         }
       );
-      if (response.data?.features?.length > 0) {
-        const route = response.data.features[0];
+      if (res.data?.features?.length > 0) {
+        const seg = res.data.features[0].properties.segments[0];
         return {
-          distance: route.properties.segments[0].distance / 1000,
-          duration: route.properties.segments[0].duration / 3600,
-          route: JSON.stringify(route.geometry),
+          distance: seg.distance / 1000,
+          duration: seg.duration / 3600,
+          route: JSON.stringify(res.data.features[0].geometry),
         };
       }
-    } catch (err) {
-      console.error('OpenRouteService error, falling back to OSRM:', err);
-    }
+    } catch { /* fall through to OSRM */ }
   }
 
-  // Fallback: OSRM
   try {
-    console.log('🗺️ Getting route via OSRM...');
-    const response = await axios.get(
+    const res = await axios.get(
       `https://router.project-osrm.org/route/v1/${profile}/${sourceLon},${sourceLat};${destLon},${destLat}`,
-      { params: { overview: 'simplified', geometries: 'geojson', steps: false } }
+      { params: { overview: 'simplified', geometries: 'geojson' }, timeout: 8000 }
     );
-    if (response.data?.routes?.length > 0) {
-      const route = response.data.routes[0];
+    if (res.data?.routes?.length > 0) {
+      const route = res.data.routes[0];
       return {
         distance: route.distance / 1000,
         duration: route.duration / 3600,
         route: JSON.stringify(route.geometry),
       };
     }
-    return null;
-  } catch (error) {
-    console.error('Error getting route:', error);
-    return null;
-  }
+  } catch { /* ignore */ }
+
+  return null;
 }
 
 // ─── Train Options ─────────────────────────────────────────────────────────────
@@ -122,7 +115,7 @@ export async function getTrainOptions(
   sourceCity: string,
   destCity: string,
   distance: number,
-  duration: number
+  _duration: number
 ): Promise<TransportOption[]> {
   const stationCodes: Record<string, string> = {
     mumbai: 'CSMT', pune: 'PUNE', delhi: 'NDLS', bangalore: 'SBC',
@@ -132,22 +125,17 @@ export async function getTrainOptions(
     nagpur: 'NGP', surat: 'ST', vadodara: 'BRC', agra: 'AGC',
   };
 
-  const sourceKey = Object.keys(stationCodes).find(k => sourceCity.toLowerCase().includes(k));
-  const destKey = Object.keys(stationCodes).find(k => destCity.toLowerCase().includes(k));
-
-  if (!sourceKey || !destKey) {
-    console.log('⚠️ Train not available for this route');
-    return [];
-  }
+  const srcKey = Object.keys(stationCodes).find(k => sourceCity.toLowerCase().includes(k));
+  const dstKey = Object.keys(stationCodes).find(k => destCity.toLowerCase().includes(k));
+  if (!srcKey || !dstKey) return [];
 
   // Try RapidAPI IRCTC
   if (process.env.RAPIDAPI_KEY) {
     try {
-      console.log(`🚆 Querying RapidAPI trains: ${stationCodes[sourceKey]} → ${stationCodes[destKey]}...`);
-      const response = await axios.get('https://irctc1.p.rapidapi.com/api/v3/trainBetweenStations', {
+      const res = await axios.get('https://irctc1.p.rapidapi.com/api/v3/trainBetweenStations', {
         params: {
-          fromStationCode: stationCodes[sourceKey],
-          toStationCode: stationCodes[destKey],
+          fromStationCode: stationCodes[srcKey],
+          toStationCode: stationCodes[dstKey],
           dateOfJourney: new Date().toISOString().split('T')[0],
         },
         headers: {
@@ -156,9 +144,8 @@ export async function getTrainOptions(
         },
         timeout: 10000,
       });
-      if (response.data?.data?.length > 0) {
-        console.log(`✅ Found ${response.data.data.length} real trains`);
-        return response.data.data.slice(0, 5).map((train: any) => ({
+      if (res.data?.data?.length > 0) {
+        return res.data.data.slice(0, 5).map((train: any) => ({
           mode: 'train' as const,
           provider: `${train.train_name} (${train.train_number})`,
           price: Math.round(distance * 0.6 + 100),
@@ -167,76 +154,48 @@ export async function getTrainOptions(
           arrivalTime: train.to_std || '10:00',
           stops: train.halt_count || Math.floor(distance / 100),
           carbonFootprint: Math.round(distance * 0.041),
-          amenities: ['AC Sleeper', 'Pantry', 'Charging points', 'Real-time schedule'],
+          amenities: ['AC Sleeper', 'Pantry', 'Charging points'],
           distance: Math.round(distance),
         }));
       }
-    } catch (err) {
-      console.error('RapidAPI train error, using heuristic fallback:', err);
-    }
+    } catch { /* fallback */ }
   }
 
   // Heuristic fallback
   const trainTypes = [
-    {
-      name: 'Shatabdi/Vande Bharat Express', speed: 85, pricePerKm: 0.8,
-      amenities: ['AC Chair Car', 'Meals included', 'WiFi', 'Premium comfort']
-    },
-    {
-      name: 'Rajdhani Express', speed: 75, pricePerKm: 1.2,
-      amenities: ['AC Sleeper', 'Meals included', 'Bedding', 'Premium service']
-    },
-    {
-      name: 'Duronto/Superfast Express', speed: 65, pricePerKm: 0.6,
-      amenities: ['AC 3-Tier', 'Pantry service', 'Charging points', 'Fast travel']
-    },
-    {
-      name: 'Mail/Express', speed: 55, pricePerKm: 0.4,
-      amenities: ['Sleeper/AC', 'Food available', 'Multiple stops', 'Budget friendly']
-    },
+    { name: 'Shatabdi/Vande Bharat', speed: 85, priceKm: 0.8, amenities: ['AC Chair Car', 'Meals', 'WiFi'] },
+    { name: 'Rajdhani Express', speed: 75, priceKm: 1.2, amenities: ['AC Sleeper', 'Meals', 'Bedding'] },
+    { name: 'Duronto / Superfast', speed: 65, priceKm: 0.6, amenities: ['AC 3-Tier', 'Pantry', 'Charging'] },
+    { name: 'Mail / Express', speed: 55, priceKm: 0.4, amenities: ['Sleeper/AC', 'Food available'] },
   ];
 
-  const trains = trainTypes.map((t, idx) => {
+  return trainTypes.map((t, idx) => {
     const dur = distance / t.speed;
-    const price = distance * t.pricePerKm + 100;
-    const departHour = 6 + idx * 4;
+    const dep = `${String(6 + idx * 4).padStart(2, '0')}:00`;
     return {
       mode: 'train' as const,
       provider: t.name,
-      price: Math.round(price),
+      price: Math.round(distance * t.priceKm + 100),
       duration: parseFloat(dur.toFixed(2)),
-      departureTime: `${String(departHour).padStart(2, '0')}:00`,
-      arrivalTime: calculateArrivalTime(`${String(departHour).padStart(2, '0')}:00`, dur),
+      departureTime: dep,
+      arrivalTime: calculateArrivalTime(dep, dur),
       stops: Math.floor(distance / 100),
       carbonFootprint: Math.round(distance * 0.041),
       amenities: t.amenities,
       distance: Math.round(distance),
     };
   });
+}
 
-    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-      console.log(`✅ Found ${response.data.length} real buses`);
-      
-      return response.data.map((bus: any) => ({
-        mode: 'bus' as const,
-        provider: bus.operator || bus.travels || 'Unknown',
-        price: parseFloat(bus.fare || bus.price || '500'),
-        duration: parseFloat(bus.duration || '8'),
-        departureTime: bus.departure_time || bus.dept_time || '08:00',
-        arrivalTime: bus.arrival_time || bus.arr_time || '16:00',
-        stops: parseInt(bus.stops || '3'),
-        carbonFootprint: Math.round((bus.distance || 300) * 0.068),
-        amenities: bus.amenities || ['AC', 'Charging Points'],
-      }));
-    }
-
-// ─── Flight Options ────────────────────────────────────────────────────────────
+// ─── Flight Options ─────────────────────────────────────────────────────────────
 
 export async function getFlightOptions(
   sourceCity: string,
   destCity: string,
   distance: number
 ): Promise<TransportOption[]> {
+  if (distance < 300) return [];
+
   const airportCodes: Record<string, string> = {
     mumbai: 'BOM', pune: 'PNQ', delhi: 'DEL', bangalore: 'BLR',
     chennai: 'MAA', kolkata: 'CCU', hyderabad: 'HYD', ahmedabad: 'AMD',
@@ -244,80 +203,63 @@ export async function getFlightOptions(
     chandigarh: 'IXC', bhopal: 'BHO', indore: 'IDR',
   };
 
-  const sourceKey = Object.keys(airportCodes).find(k => sourceCity.toLowerCase().includes(k));
-  const destKey = Object.keys(airportCodes).find(k => destCity.toLowerCase().includes(k));
+  const srcKey = Object.keys(airportCodes).find(k => sourceCity.toLowerCase().includes(k));
+  const dstKey = Object.keys(airportCodes).find(k => destCity.toLowerCase().includes(k));
+  if (!srcKey || !dstKey) return [];
 
-  if (!sourceKey || !destKey) {
-    console.log('⚠️ No major airport found for this route');
-    return [];
-  }
-
-  // Skip flights for short routes
-  if (distance < 300) {
-    console.log('⚠️ Distance too short for flights');
-    return [];
-  }
-
-  // Try Aviationstack API
   if (process.env.AVIATIONSTACK_API_KEY) {
     try {
-      console.log(`✈️ Querying Aviationstack for ${airportCodes[sourceKey]} → ${airportCodes[destKey]}...`);
-      const response = await axios.get('http://api.aviationstack.com/v1/flights', {
+      const res = await axios.get('http://api.aviationstack.com/v1/flights', {
         params: {
           access_key: process.env.AVIATIONSTACK_API_KEY,
-          dep_iata: airportCodes[sourceKey],
-          arr_iata: airportCodes[destKey],
+          dep_iata: airportCodes[srcKey],
+          arr_iata: airportCodes[dstKey],
           limit: 5,
         },
         timeout: 10000,
       });
-      if (response.data?.data?.length > 0) {
-        console.log(`✅ Found ${response.data.data.length} real flights from Aviationstack`);
-        return response.data.data.map((flight: any) => {
-          const depTime = new Date(flight.departure.scheduled);
-          const arrTime = new Date(flight.arrival.scheduled);
-          const durationHrs = (arrTime.getTime() - depTime.getTime()) / (1000 * 60 * 60);
+      if (res.data?.data?.length > 0) {
+        return res.data.data.map((flight: any) => {
+          const dep = new Date(flight.departure.scheduled);
+          const arr = new Date(flight.arrival.scheduled);
+          const durHrs = (arr.getTime() - dep.getTime()) / (1000 * 60 * 60);
           return {
             mode: 'flight' as const,
-            provider: `${flight.airline?.name || 'Unknown Airline'} - ${flight.flight?.iata || 'Flight'}`,
+            provider: `${flight.airline?.name || 'Airline'} ${flight.flight?.iata || ''}`,
             price: Math.round(3500 + distance * 2.5),
-            duration: parseFloat(durationHrs.toFixed(1)) || 2,
-            departureTime: depTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-            arrivalTime: arrTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            duration: parseFloat(durHrs.toFixed(1)) || 2,
+            departureTime: dep.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            arrivalTime: arr.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
             stops: 0,
             carbonFootprint: Math.round(distance * 0.158),
-            amenities: ['Real-time flight', 'Baggage allowance', 'In-flight service'],
+            amenities: ['In-flight service', 'Baggage allowance'],
             distance: Math.round(distance),
           };
         });
       }
-    } catch (err) {
-      console.error('Aviationstack error, using heuristic flights:', err);
-    }
+    } catch { /* fallback */ }
   }
 
-  // Heuristic fallback
   const airlines = [
-    { name: 'IndiGo', multiplier: 1.0 },
-    { name: 'Air India', multiplier: 1.15 },
-    { name: 'SpiceJet', multiplier: 0.9 },
-    { name: 'Vistara', multiplier: 1.3 },
+    { name: 'IndiGo', mult: 1.0 },
+    { name: 'Air India', mult: 1.15 },
+    { name: 'SpiceJet', mult: 0.9 },
+    { name: 'Vistara', mult: 1.3 },
   ];
 
-  const flights = airlines.map((airline, idx) => {
+  return airlines.map((a, idx) => {
     const dur = distance / 800 + 1;
-    const price = (2500 + distance * 3) * airline.multiplier;
-    const departHour = 6 + idx * 3;
+    const dep = `${String(6 + idx * 3).padStart(2, '0')}:00`;
     return {
       mode: 'flight' as const,
-      provider: airline.name,
-      price: Math.round(price),
+      provider: a.name,
+      price: Math.round((2500 + distance * 3) * a.mult),
       duration: parseFloat(dur.toFixed(2)),
-      departureTime: `${String(departHour).padStart(2, '0')}:00`,
-      arrivalTime: calculateArrivalTime(`${String(departHour).padStart(2, '0')}:00`, dur),
+      departureTime: dep,
+      arrivalTime: calculateArrivalTime(dep, dur),
       stops: 0,
       carbonFootprint: Math.round(distance * 0.158),
-      amenities: ['In-flight Entertainment', 'Meal', 'Baggage allowance'],
+      amenities: ['In-flight Entertainment', 'Meal', 'Baggage'],
       distance: Math.round(distance),
     };
   });
@@ -326,34 +268,32 @@ export async function getFlightOptions(
 // ─── Bus Options ───────────────────────────────────────────────────────────────
 
 export async function getBusOptions(
-  sourceCity: string,
-  destCity: string,
+  _sourceCity: string,
+  _destCity: string,
   distance: number,
-  duration: number
+  _duration: number
 ): Promise<TransportOption[]> {
-  // Only useful for 50–600 km
   if (distance < 50 || distance > 600) return [];
 
-  const busOperators = [
-    { name: 'VRL Travels', pricePerKm: 1.5 },
-    { name: 'Paulo Travels', pricePerKm: 1.8 },
-    { name: 'RedBus Partner', pricePerKm: 1.0 },
+  const operators = [
+    { name: 'VRL Travels', priceKm: 1.5 },
+    { name: 'Paulo Travels', priceKm: 1.8 },
+    { name: 'RedBus Partner', priceKm: 1.0 },
   ];
 
-  return busOperators.map((bus, idx) => {
+  return operators.map((b, idx) => {
     const dur = distance / 50;
-    const price = distance * bus.pricePerKm;
-    const departHour = 19 + idx;
+    const dep = `${String(19 + idx).padStart(2, '0')}:00`;
     return {
       mode: 'bus' as const,
-      provider: bus.name,
-      price: Math.round(price),
+      provider: b.name,
+      price: Math.round(distance * b.priceKm),
       duration: parseFloat(dur.toFixed(2)),
-      departureTime: `${String(departHour).padStart(2, '0')}:00`,
-      arrivalTime: calculateArrivalTime(`${String(departHour).padStart(2, '0')}:00`, dur),
+      departureTime: dep,
+      arrivalTime: calculateArrivalTime(dep, dur),
       stops: Math.floor(distance / 100),
       carbonFootprint: Math.round(distance * 0.068),
-      amenities: ['AC', 'WiFi', 'Charging Points'],
+      amenities: ['AC', 'WiFi', 'Charging'],
       distance: Math.round(distance),
     };
   });
@@ -366,39 +306,32 @@ export async function getMetroOptions(
   destCity: string,
   distance: number
 ): Promise<TransportOption[]> {
-  const metroCities = [
-    'delhi', 'mumbai', 'bangalore', 'kolkata', 'chennai',
-    'hyderabad', 'pune', 'jaipur', 'kochi', 'lucknow',
-    'noida', 'gurgaon', 'gurugram', 'nagpur', 'ahmedabad',
-  ];
+  if (distance > 50) return [];
+
+  const metroCities = ['delhi', 'mumbai', 'bangalore', 'kolkata', 'chennai',
+    'hyderabad', 'pune', 'jaipur', 'kochi', 'lucknow', 'noida', 'gurgaon', 'gurugram', 'nagpur', 'ahmedabad'];
 
   const srcN = sourceCity.toLowerCase();
   const dstN = destCity.toLowerCase();
-  const isSameCity =
-    srcN === dstN ||
-    (srcN.includes('noida') && dstN.includes('delhi')) ||
-    (srcN.includes('delhi') && dstN.includes('noida')) ||
-    (srcN.includes('gurgaon') && dstN.includes('delhi')) ||
-    (srcN.includes('gurugram') && dstN.includes('delhi'));
-
   const hasMetro = metroCities.some(c => srcN.includes(c) || dstN.includes(c));
+  const isSameCity = srcN === dstN
+    || (srcN.includes('noida') && dstN.includes('delhi'))
+    || (srcN.includes('gurgaon') && dstN.includes('delhi'))
+    || (srcN.includes('gurugram') && dstN.includes('delhi'));
 
-  if (!isSameCity || !hasMetro || distance > 50) return [];
+  if (!hasMetro || !isSameCity) return [];
 
-  const metroDuration = distance / 35 + 0.5;
-  const price = Math.min(10 + distance * 2, 60);
-
-  console.log('🚇 Found metro option');
+  const dur = distance / 35 + 0.5;
   return [{
     mode: 'metro' as const,
     provider: `${sourceCity} Metro Rail`,
-    price: Math.round(price),
-    duration: parseFloat(metroDuration.toFixed(2)),
-    departureTime: 'Every 5-10 mins (6AM–11PM)',
-    arrivalTime: `${Math.round(metroDuration * 60)} minutes`,
+    price: Math.round(Math.min(10 + distance * 2, 60)),
+    duration: parseFloat(dur.toFixed(2)),
+    departureTime: 'Every 5-10 min (6AM–11PM)',
+    arrivalTime: `~${Math.round(dur * 60)} min`,
     stops: Math.floor(distance / 1.5),
     carbonFootprint: Math.round(distance * 0.02),
-    amenities: ['AC coaches', 'Frequent service', 'Safe & clean', 'Disabled friendly'],
+    amenities: ['AC coaches', 'Frequent service', 'Safe & clean'],
     distance: Math.round(distance),
   }];
 }
@@ -409,16 +342,14 @@ export async function getCarOptions(
   distance: number,
   duration: number
 ): Promise<TransportOption[]> {
-  const carTypes = [
-    { name: 'Self Drive / Own Car', pricePerKm: 4, amenities: ['Flexible timing', 'Privacy', 'Door-to-door'] },
-    { name: 'Outstation Cab (Ola/Uber)', pricePerKm: 12, amenities: ['Professional driver', 'AC', 'Comfortable'] },
-    { name: 'Shared Cab', pricePerKm: 7, amenities: ['Budget friendly', 'AC', 'Fixed route'] },
-  ];
-
-  return carTypes.map((car, idx) => ({
+  return [
+    { name: 'Self Drive / Own Car', priceKm: 4, amenities: ['Flexible timing', 'Privacy', 'Door-to-door'] },
+    { name: 'Outstation Cab (Ola/Uber)', priceKm: 12, amenities: ['Professional driver', 'AC', 'Comfortable'] },
+    { name: 'Shared Cab', priceKm: 7, amenities: ['Budget friendly', 'AC', 'Fixed route'] },
+  ].map(car => ({
     mode: 'car' as const,
     provider: car.name,
-    price: Math.round(distance * car.pricePerKm),
+    price: Math.round(distance * car.priceKm),
     duration: parseFloat(duration.toFixed(2)),
     departureTime: 'Flexible',
     arrivalTime: `~${Math.round(duration * 60)} min`,
@@ -437,31 +368,24 @@ export async function getAllTransportOptions(
   date: string
 ): Promise<TransportOption[]> {
   try {
-    console.log(`\n🚗 Fetching ALL transport options: ${source} → ${destination}`);
+    console.log(`\n🚗 Transport options: ${source} → ${destination}`);
 
-    const sourceCoords = await getCityCoordinates(source);
-    const destCoords = await getCityCoordinates(destination);
+    const [srcCoords, dstCoords] = await Promise.all([
+      getCityCoordinates(source),
+      getCityCoordinates(destination),
+    ]);
 
-    if (!sourceCoords || !destCoords) {
-      console.log('❌ Could not get coordinates');
+    if (!srcCoords || !dstCoords) {
+      console.log('❌ Could not resolve coordinates');
       return [];
     }
 
-    const distance = calculateDistance(
-      sourceCoords.lat, sourceCoords.lon,
-      destCoords.lat, destCoords.lon
-    );
-    console.log(`📏 Distance: ${distance.toFixed(2)} km`);
+    const distance = calculateDistance(srcCoords.lat, srcCoords.lon, dstCoords.lat, dstCoords.lon);
+    console.log(`📏 Distance: ${distance.toFixed(1)} km`);
 
-    // Get route for car duration
-    const routeDetails = await getRouteDetails(
-      sourceCoords.lat, sourceCoords.lon,
-      destCoords.lat, destCoords.lon
-    );
-    const carDuration = routeDetails?.duration || distance / 60;
+    const routeDetails = await getRouteDetails(srcCoords.lat, srcCoords.lon, dstCoords.lat, dstCoords.lon);
+    const carDuration = routeDetails?.duration ?? distance / 60;
 
-    // Fetch all modes in parallel
-    console.log('\n📊 Fetching transport modes...');
     const [flights, trains, buses, metro, cars] = await Promise.all([
       getFlightOptions(source, destination, distance),
       getTrainOptions(source, destination, distance, carDuration),
@@ -470,13 +394,12 @@ export async function getAllTransportOptions(
       getCarOptions(distance, carDuration),
     ]);
 
-    const allOptions = [...flights, ...trains, ...buses, ...metro, ...cars];
-    const optionsWithRecommendations = addRecommendations(allOptions);
-
-    console.log(`\n✅ TOTAL: ${optionsWithRecommendations.length} transport options found\n`);
-    return optionsWithRecommendations;
-  } catch (error: any) {
-    console.error('❌ Error in getAllTransportOptions:', error.message);
+    const all = [...flights, ...trains, ...buses, ...metro, ...cars];
+    const result = addRecommendations(all);
+    console.log(`✅ ${result.length} options found`);
+    return result;
+  } catch (err: any) {
+    console.error('❌ getAllTransportOptions:', err.message);
     return [];
   }
 }
@@ -488,30 +411,26 @@ export function addRecommendations(options: TransportOption[]): TransportOption[
 
   const minPrice = Math.min(...options.map(o => o.price));
   const maxPrice = Math.max(...options.map(o => o.price));
-  const minDuration = Math.min(...options.map(o => o.duration));
-  const maxDuration = Math.max(...options.map(o => o.duration));
+  const minDur = Math.min(...options.map(o => o.duration));
+  const maxDur = Math.max(...options.map(o => o.duration));
 
   const scored = options.map(option => {
     let score = 0;
     const reasons: string[] = [];
 
-    // Price (30%)
     const priceScore = 1 - (option.price - minPrice) / (maxPrice - minPrice || 1);
     score += priceScore * 0.3;
     if (option.price <= minPrice * 1.2) reasons.push('💰 Best value');
 
-    // Speed (35%)
-    const durationScore = 1 - (option.duration - minDuration) / (maxDuration - minDuration || 1);
-    score += durationScore * 0.35;
-    if (option.duration <= minDuration * 1.1) reasons.push('⚡ Fastest');
+    const durScore = 1 - (option.duration - minDur) / (maxDur - minDur || 1);
+    score += durScore * 0.35;
+    if (option.duration <= minDur * 1.1) reasons.push('⚡ Fastest');
 
-    // Eco (15%)
     if (option.carbonFootprint) {
-      const minCarbon = Math.min(...options.filter(o => o.carbonFootprint).map(o => o.carbonFootprint!));
-      if (option.carbonFootprint <= minCarbon * 1.2) reasons.push('🌱 Eco-friendly');
+      const minC = Math.min(...options.filter(o => o.carbonFootprint).map(o => o.carbonFootprint!));
+      if (option.carbonFootprint <= minC * 1.2) reasons.push('🌱 Eco-friendly');
     }
 
-    // Comfort (20%)
     const comfort: Record<string, number> = { flight: 0.9, train: 0.7, bus: 0.6, metro: 0.8, car: 0.75 };
     score += (comfort[option.mode] || 0.5) * 0.2;
 

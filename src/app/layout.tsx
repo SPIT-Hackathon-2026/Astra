@@ -3,14 +3,14 @@ import { Luckiest_Guy, Fredoka } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-const fredoka = Fredoka({ 
+const fredoka = Fredoka({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-fredoka',
 });
 
-const luckiestGuy = Luckiest_Guy({ 
-  weight: '400', 
+const luckiestGuy = Luckiest_Guy({
+  weight: '400',
   subsets: ['latin'],
   variable: '--font-luckiest-guy',
 });
@@ -28,6 +28,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`scroll-smooth ${fredoka.variable} ${luckiestGuy.variable}`}>
+      <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+      </head>
       <body className={fredoka.className} style={{ fontFamily: 'Fredoka, Arial, sans-serif' }}>
         <Providers>{children}</Providers>
       </body>

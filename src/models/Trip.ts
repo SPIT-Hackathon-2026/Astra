@@ -4,10 +4,12 @@ export interface ITrip extends Document {
   userId: string;
   source: string;
   destination: string;
+  sourceCoords?: { lat: number; lng: number };
+  destCoords?: { lat: number; lng: number };
   startDate: Date;
   endDate: Date;
   travelers: number;
-  
+
   // Transport options
   transportOptions: {
     mode: string;
@@ -23,14 +25,14 @@ export interface ITrip extends Document {
     isRecommended?: boolean;
     recommendationReason?: string;
   }[];
-  
+
   selectedTransport?: {
     mode: string;
     provider: string;
     price: number;
     duration: number;
   };
-  
+
   // Tourist spots
   allTouristSpots: {
     name: string;
@@ -49,10 +51,10 @@ export interface ITrip extends Document {
     isPopular?: boolean;
     popularity?: number;
   }[];
-  
-  selectedTouristSpots: string[]; // Array of spot names
-  
-  // Itinerary
+
+  selectedTouristSpots: string[];
+
+  // Classic Itinerary
   itinerary: {
     day: number;
     date: Date;
@@ -66,7 +68,25 @@ export interface ITrip extends Document {
     totalHours: number;
     warnings?: string[];
   }[];
-  
+
+  // AI-powered itinerary
+  aiItinerary?: {
+    day: number;
+    theme: string;
+    activities: {
+      time: string;
+      title: string;
+      description: string;
+      type: 'visit' | 'food' | 'travel' | 'rest' | 'activity';
+      duration: string;
+      cost?: number;
+      tip?: string;
+    }[];
+  }[];
+
+  aiTips?: string[];
+  aiSummary?: string;
+
   // Costs
   costs: {
     transport: number;
@@ -75,13 +95,18 @@ export interface ITrip extends Document {
     attractions: number;
     total: number;
   };
-  
+
   preferences: {
     budgetType?: string;
     interests?: string[];
     maxHoursPerDay?: number;
+    travelStyle?: string;
+    accommodationType?: string;
+    pacePreference?: string;
+    specialRequirements?: string[];
+    travelCompanion?: string;
   };
-  
+
   status: 'planning' | 'confirmed' | 'completed' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
@@ -100,6 +125,14 @@ const TripSchema: Schema = new Schema({
   destination: {
     type: String,
     required: true,
+  },
+  sourceCoords: {
+    lat: Number,
+    lng: Number,
+  },
+  destCoords: {
+    lat: Number,
+    lng: Number,
   },
   startDate: {
     type: Date,
@@ -164,6 +197,21 @@ const TripSchema: Schema = new Schema({
     totalHours: Number,
     warnings: [String],
   }],
+  aiItinerary: [{
+    day: Number,
+    theme: String,
+    activities: [{
+      time: String,
+      title: String,
+      description: String,
+      type: { type: String, enum: ['visit', 'food', 'travel', 'rest', 'activity'] },
+      duration: String,
+      cost: Number,
+      tip: String,
+    }],
+  }],
+  aiTips: [String],
+  aiSummary: String,
   costs: {
     transport: { type: Number, default: 0 },
     accommodation: { type: Number, default: 0 },
@@ -175,6 +223,11 @@ const TripSchema: Schema = new Schema({
     budgetType: String,
     interests: [String],
     maxHoursPerDay: { type: Number, default: 12 },
+    travelStyle: String,
+    accommodationType: String,
+    pacePreference: String,
+    specialRequirements: [String],
+    travelCompanion: String,
   },
   status: {
     type: String,

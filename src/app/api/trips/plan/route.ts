@@ -3,12 +3,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import dbConnect from '../../../../lib/mongodb';
 import Trip from '../../../../models/Trip';
-import { getAllTransportOptions } from '../../../../services/api/transportAPI';
+import { getAllTransportOptions, getCityCoordinates } from '../../../../services/api/transportAPI';
 import { getTouristSpots } from '../../../../services/api/touristAPI';
+import { generateAIItinerary } from '../../../../services/aiTripPlanner';
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('\n🎯 === NEW TRIP PLANNING REQUEST ===');
+    console.log('\n🎯 === NEW AI TRIP PLANNING REQUEST ===');
 
     const session = await getServerSession(authOptions);
 
@@ -30,6 +31,11 @@ export async function POST(req: NextRequest) {
       travelers,
       interests,
       budgetType,
+      travelStyle,
+      accommodationType,
+      pacePreference,
+      specialRequirements,
+      travelCompanion,
     } = body;
 
     // Validation
@@ -43,6 +49,7 @@ export async function POST(req: NextRequest) {
     console.log(`\n📊 Route: ${source} → ${destination}`);
     console.log(`Dates: ${startDate} to ${endDate}`);
     console.log(`Travelers: ${travelers || 1}`);
+    console.log(`Style: ${travelStyle}, Pace: ${pacePreference}`);
 
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -50,51 +57,103 @@ export async function POST(req: NextRequest) {
 
     console.log(`Duration: ${days} days`);
 
-    // Fetch ALL transport options (no budget filter initially)
-    console.log('\n🚗 Fetching ALL transport options...');
-    const transportOptions = await getAllTransportOptions(
-      source,
-      destination,
-      start.toISOString().split('T')[0]
-    );
+    // Geocode source & destination + fetch transport options & tourist spots in parallel
+    console.log('\n📍 Geocoding cities & fetching data...');
+    const [srcCoords, dstCoords, transportOptions, touristSpots] = await Promise.all([
+      getCityCoordinates(source),
+      getCityCoordinates(destination),
+      getAllTransportOptions(source, destination, start.toISOString().split('T')[0]),
+      getTouristSpots(destination, interests),
+    ]);
 
+    console.log(`📍 Source coords: ${srcCoords ? `${srcCoords.lat}, ${srcCoords.lon}` : 'NOT FOUND'}`);
+    console.log(`📍 Destination coords: ${dstCoords ? `${dstCoords.lat}, ${dstCoords.lon}` : 'NOT FOUND'}`);
     console.log(`✅ Found ${transportOptions.length} transport options`);
-
-    // Fetch tourist spots
-    console.log('\n🏖️ Fetching tourist spots...');
-    const touristSpots = await getTouristSpots(destination, interests);
-
     console.log(`✅ Found ${touristSpots.length} tourist spots`);
 
-    // Calculate initial costs (NO transport cost initially)
-    const accommodationCostPerNight =
-      budgetType === 'budget' ? 1500 : budgetType === 'luxury' ? 5000 : 3000;
-    const accommodationCost = (days - 1) * accommodationCostPerNight; // -1 because last day doesn't need hotel
+    // Generate AI-powered itinerary
+    console.log('\n🤖 Generating AI itinerary...');
+    let aiItinerary = null;
+    let aiTips: string[] = [];
+    let aiSummary = '';
 
-    const foodCostPerDay = 1000;
+    try {
+      const aiResult = await generateAIItinerary({
+        source,
+        destination,
+        startDate,
+        endDate,
+        days,
+        travelers: travelers || 1,
+        interests: interests || [],
+        budgetType: budgetType || 'moderate',
+        travelStyle: travelStyle || 'balanced',
+        pacePreference: pacePreference || 'moderate',
+        accommodationType: accommodationType || 'hotel',
+        specialRequirements: specialRequirements || [],
+        travelCompanion: travelCompanion || 'solo',
+        touristSpots: touristSpots.map(s => ({
+          name: s.name,
+          category: s.category,
+          rating: s.rating,
+          estimatedTime: s.estimatedTime,
+          entryFee: s.entryFee,
+          bestTimeToVisit: s.bestTimeToVisit,
+          coordinates: s.coordinates,
+        })),
+      });
+
+      if (aiResult) {
+        aiItinerary = aiResult.itinerary;
+        aiTips = aiResult.tips || [];
+        aiSummary = aiResult.summary || '';
+        console.log('✅ AI itinerary generated successfully');
+      }
+    } catch (aiError: any) {
+      console.error('⚠️ AI generation failed, using fallback:', aiError.message);
+    }
+
+    // Calculate costs based on budget type and preferences
+    const accommodationRates: Record<string, Record<string, number>> = {
+      budget: { hostel: 500, hotel: 1200, resort: 2500, homestay: 800, airbnb: 1000 },
+      moderate: { hostel: 800, hotel: 2500, resort: 5000, homestay: 1500, airbnb: 2000 },
+      luxury: { hostel: 1500, hotel: 5000, resort: 12000, homestay: 3000, airbnb: 5000 },
+    };
+
+    const foodRates: Record<string, number> = {
+      budget: 600,
+      moderate: 1200,
+      luxury: 2500,
+    };
+
+    const accType = accommodationType || 'hotel';
+    const budType = budgetType || 'moderate';
+    const accommodationCostPerNight = accommodationRates[budType]?.[accType] || 2500;
+    const accommodationCost = Math.max(0, days - 1) * accommodationCostPerNight;
+    const foodCostPerDay = foodRates[budType] || 1200;
     const foodCost = days * (travelers || 1) * foodCostPerDay;
 
     const initialCosts = {
-      transport: 0, // Start with 0
+      transport: 0,
       accommodation: accommodationCost,
       food: foodCost,
-      attractions: 0, // Will be calculated when user selects spots
+      attractions: 0,
       total: accommodationCost + foodCost,
     };
 
-    console.log('\n💰 Initial Costs:');
-    console.log(`  Accommodation: ₹${accommodationCost} (${days - 1} nights)`);
+    console.log('\n💰 Estimated Costs:');
+    console.log(`  Accommodation: ₹${accommodationCost} (${days - 1} nights × ₹${accommodationCostPerNight})`);
     console.log(`  Food: ₹${foodCost} (${days} days)`);
-    console.log(`  Transport: ₹0 (not selected yet)`);
-    console.log(`  Attractions: ₹0 (not selected yet)`);
     console.log(`  TOTAL: ₹${initialCosts.total}`);
 
-    // Create trip in database
+    // Save trip to database
     console.log('\n💾 Saving trip to database...');
     const trip = new Trip({
       userId: session.user.id,
       source,
       destination,
+      sourceCoords: srcCoords ? { lat: srcCoords.lat, lng: srcCoords.lon } : undefined,
+      destCoords: dstCoords ? { lat: dstCoords.lat, lng: dstCoords.lon } : undefined,
       startDate: start,
       endDate: end,
       travelers: travelers || 1,
@@ -104,16 +163,23 @@ export async function POST(req: NextRequest) {
       itinerary: [],
       costs: initialCosts,
       preferences: {
-        budgetType: budgetType || 'moderate',
+        budgetType: budType,
         interests: interests || [],
-        maxHoursPerDay: 12,
+        maxHoursPerDay: pacePreference === 'relaxed' ? 8 : pacePreference === 'packed' ? 14 : 11,
+        travelStyle: travelStyle || 'balanced',
+        accommodationType: accType,
+        pacePreference: pacePreference || 'moderate',
+        specialRequirements: specialRequirements || [],
+        travelCompanion: travelCompanion || 'solo',
       },
+      aiItinerary: aiItinerary,
+      aiTips: aiTips,
+      aiSummary: aiSummary,
       status: 'planning',
     });
 
     await trip.save();
     console.log(`✅ Trip saved with ID: ${trip._id}`);
-
     console.log('\n🎉 === TRIP PLANNING COMPLETE ===\n');
 
     return NextResponse.json({
@@ -130,6 +196,9 @@ export async function POST(req: NextRequest) {
         transportOptions,
         touristSpots,
         costs: initialCosts,
+        aiItinerary,
+        aiTips,
+        aiSummary,
       },
     });
   } catch (error: any) {
